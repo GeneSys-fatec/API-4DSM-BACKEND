@@ -1,5 +1,5 @@
 import { AppDataSource } from "../data-source.js";
-import { StationEntity } from "../entitys/stationEntity.js";
+import { StationEntity } from "../entities/stationEntity.js";
 
 export interface CreateStationInput {
 	name: string;
