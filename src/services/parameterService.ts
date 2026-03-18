@@ -1,10 +1,10 @@
 import { AppDataSource } from "../data-source.js";
 import { ParameterEntity } from "../entities/parameterEntity.js";
-import type { StationEntity } from "../entities/stationEntity.js";
 
 export interface CreateParameterInput {
-    name: string;
-    city: string;
+    idStation: number;
+    idTypeParam: number;
+    key: string;
     isActive?: boolean;
 }
 
@@ -25,9 +25,9 @@ export class ParameterService {
 
     async create(data: CreateParameterInput): Promise<ParameterEntity> {
         const parameter = this.repository.create({
-            name: data.name,
-            city: data.city,
-            isActive: data.isActive ?? true,
+            idStation: data.idStation,
+            idTypeParam: data.idTypeParam,
+            key: data.key,
         });
 
         return this.repository.save(parameter);

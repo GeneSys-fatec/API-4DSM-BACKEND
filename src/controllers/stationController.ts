@@ -7,7 +7,11 @@ interface StationParams {
 
 interface CreateStationBody {
 	name: string;
-	city: string;
+	address: string;
+	latitude: string;
+	longitude: string;
+	idDatalogger: string;
+	status: string;
 	isActive?: boolean;
 }
 
@@ -18,9 +22,9 @@ export class StationController {
 		return reply.send(stations);
 	};
 
-	findByCity = async (request: FastifyRequest<{ Params: { city: string } }>,reply: FastifyReply) => {
-		const city = request.params.city;
-		return reply.send(await stationService.findByCity(city));
+	findByAddress = async (request: FastifyRequest<{ Params: { address: string } }>,reply: FastifyReply) => {
+		const address = request.params.address;
+		return reply.send(await stationService.findByAddress(address));
 	}
 
 	findById = async (
@@ -46,17 +50,21 @@ export class StationController {
 		request: FastifyRequest<{ Body: CreateStationBody }>,
 		reply: FastifyReply,
 	) => {
-		const { name, city, isActive } = request.body;
+		const { name, address, latitude, longitude, idDatalogger, status, isActive } = request.body;
 
-		if (!name || !city) {
+		if (!name || !address) {
 			return reply.status(400).send({
-				message: "Fields 'name' and 'city' are required",
+				message: "Fields 'name' and 'address' are required",
 			});
 		}
 
 		const station = await stationService.create({
 			name,
-			city,
+			address,
+			latitude,
+			longitude,
+			idDatalogger,
+			status,
 			...(isActive === undefined ? {} : { isActive }),
 		});
 

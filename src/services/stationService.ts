@@ -3,7 +3,11 @@ import { StationEntity } from "../entities/stationEntity.js";
 
 export interface CreateStationInput {
 	name: string;
-	city: string;
+	address: string;
+	latitude: string;
+	longitude: string;
+	idDatalogger: string;
+	status: string;
 	isActive?: boolean;
 }
 
@@ -22,8 +26,8 @@ export class StationService {
 		return this.repository.findOneBy({ name });
 	}
 
-	async findByCity(city: string): Promise<StationEntity[]> {
-		return this.repository.findBy({ city });	
+	async findByAddress(address: string): Promise<StationEntity[]> {
+		return this.repository.findBy({ address });	
 	}
 
 	async findById(id: number): Promise<StationEntity | null> {
@@ -33,8 +37,14 @@ export class StationService {
 	async create(data: CreateStationInput): Promise<StationEntity> {
 		const station = this.repository.create({
 			name: data.name,
-			city: data.city,
+			address: data.address,
+			latitude: data.latitude,
+			longitude: data.longitude,
+			idDatalogger: data.idDatalogger,
+			status: data.status,
 			isActive: data.isActive ?? true,
+			createdBy: "system",
+			updatedBy: "system",
 		});
 
 		return this.repository.save(station);

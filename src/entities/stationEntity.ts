@@ -11,18 +11,36 @@ export class StationEntity {
 	@PrimaryGeneratedColumn()
 	id!: number;
 
-	@Column({ length: 120 })
+	@Column({ type: "varchar", length: 120 })
 	name!: string;
 
-	@Column({ length: 120 })
-	city!: string;
+	@Column({ type: "varchar", length: 255 })
+	address!: string;
 
-	@Column({ default: true })
+	@Column({ type: "varchar", length: 120 })
+	latitude!: string;
+
+	@Column({ type: "varchar", length: 120 })
+	longitude!: string;
+
+	@Column({ type: "varchar", length: 50 })
+	idDatalogger!: string;
+
+	@Column({ type: "varchar", length: 15 })
+	status!: string;
+
+	@Column({ type: "boolean", default: true })
 	isActive!: boolean;
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
 	createdAt!: Date;
 
-	@UpdateDateColumn()
+	@UpdateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
 	updatedAt!: Date;
+
+	@Column({ type: "varchar", length: 120, default: "system" })
+	createdBy!: string;
+
+	@Column({ type: "varchar", length: 120, default: "system" })
+	updatedBy!: string;
 }

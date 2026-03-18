@@ -6,8 +6,9 @@ interface ParameterParams {
 }
 
 interface CreateParameterBody {
-    name: string;
-    city: string;
+    idStation: number;
+    idTypeParam: number;
+    key: string;
     isActive?: boolean;
 }
 
@@ -41,17 +42,18 @@ export class ParameterController {
         request: FastifyRequest<{ Body: CreateParameterBody }>,
         reply: FastifyReply,
     ) => {
-        const { name, city, isActive } = request.body;
+        const { idStation, idTypeParam, key, isActive } = request.body;
 
-        if (!name || !city) {
+        if (!idStation || !idTypeParam || !key) {
             return reply.status(400).send({
-                message: "Fields 'name' and 'city' are required",
+                message: "Fields 'idStation', 'idTypeParam', and 'key' are required",
             });
         }
 
         const parameter = await parameterService.create({
-            name,
-            city,
+            idStation,
+            idTypeParam,
+            key,
             ...(isActive === undefined ? {} : { isActive }),
         });
 
