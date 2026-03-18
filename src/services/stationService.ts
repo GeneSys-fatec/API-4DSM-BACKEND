@@ -18,6 +18,14 @@ export class StationService {
 		});
 	}
 
+	async findByName(name: string): Promise<StationEntity | null> {
+		return this.repository.findOneBy({ name });
+	}
+
+	async findByCity(city: string): Promise<StationEntity[]> {
+		return this.repository.findBy({ city });	
+	}
+
 	async findById(id: number): Promise<StationEntity | null> {
 		return this.repository.findOneBy({ id });
 	}

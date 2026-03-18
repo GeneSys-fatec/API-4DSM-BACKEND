@@ -7,6 +7,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     });
 
     fastify.get("/stations", stationController.list);
+    fastify.get("/stations/city/:city", stationController.findByCity);
     fastify.get("/stations/:id", stationController.findById);
     fastify.post("/stations", stationController.create);
 }

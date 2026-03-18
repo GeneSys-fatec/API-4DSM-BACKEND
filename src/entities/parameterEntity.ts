@@ -11,14 +11,11 @@ export class ParameterEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ length: 120 })
-    name!: string;
+    @Column()
+    idStation!: number;
 
-    @Column({ length: 120 })
-    city!: string;
-
-    @Column({ default: true })
-    isActive!: boolean;
+    @Column()
+    key!: string;
 
     @CreateDateColumn()
     createdAt!: Date;

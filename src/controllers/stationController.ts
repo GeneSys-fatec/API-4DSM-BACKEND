@@ -18,6 +18,11 @@ export class StationController {
 		return reply.send(stations);
 	};
 
+	findByCity = async (request: FastifyRequest<{ Params: { city: string } }>,reply: FastifyReply) => {
+		const city = request.params.city;
+		return reply.send(await stationService.findByCity(city));
+	}
+
 	findById = async (
 		request: FastifyRequest<{ Params: StationParams }>,
 		reply: FastifyReply,
