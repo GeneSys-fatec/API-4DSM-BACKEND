@@ -49,6 +49,27 @@ export class StationService {
 
 		return this.repository.save(station);
 	}
+
+	async update(id: number, data: Partial<CreateStationInput>): Promise<StationEntity | null> {
+		const station = await this.findById(id);
+		if (!station) {
+			return null;
+		}
+
+		Object.assign(station, data, { updatedBy: "system" });
+		return this.repository.save(station);
+	}
+
+	async delete(id: number): Promise<boolean> {
+		const station = await this.findById(id);
+		if (!station) {
+			return false;
+		}
+
+		await this.repository.remove(station);
+		return true;
+	}
+
 }
 
 export const stationService = new StationService();
