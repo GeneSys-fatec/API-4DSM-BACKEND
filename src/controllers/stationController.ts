@@ -7,7 +7,11 @@ interface StationParams {
 
 interface CreateStationBody {
 	name: string;
-	city: string;
+	address: string;
+	latitude: string;
+	longitude: string;
+	idDatalogger: string;
+	status: string;
 	isActive?: boolean;
 }
 
@@ -17,6 +21,11 @@ export class StationController {
 
 		return reply.send(stations);
 	};
+
+	findByAddress = async (request: FastifyRequest<{ Params: { address: string } }>,reply: FastifyReply) => {
+		const address = request.params.address;
+		return reply.send(await stationService.findByAddress(address));
+	}
 
 	findById = async (
 		request: FastifyRequest<{ Params: StationParams }>,
@@ -41,22 +50,78 @@ export class StationController {
 		request: FastifyRequest<{ Body: CreateStationBody }>,
 		reply: FastifyReply,
 	) => {
-		const { name, city, isActive } = request.body;
+		const { name, address, latitude, longitude, idDatalogger, status, isActive } = request.body;
 
-		if (!name || !city) {
+		if (!name || !address) {
 			return reply.status(400).send({
-				message: "Fields 'name' and 'city' are required",
+				message: "Fields 'name' and 'address' are required",
 			});
 		}
 
 		const station = await stationService.create({
 			name,
-			city,
+			address,
+			latitude,
+			longitude,
+			idDatalogger,
+			status,
 			...(isActive === undefined ? {} : { isActive }),
 		});
 
 		return reply.status(201).send(station);
 	};
+
+	update = async (
+		request: FastifyRequest<{ Params: StationParams; Body: CreateStationBody }>,
+		reply: FastifyReply,
+	) => {		const id = Number(request.params.id);
+
+		if (Number.isNaN(id)) {
+			return reply.status(400).send({ message: "Invalid station id" });
+		}
+
+		const station = await stationService.findById(id);
+
+		if (!station) {
+			return reply.status(404).send({ message: "Station not found" });
+		}
+
+		const { name, address, latitude, longitude, idDatalogger, status, isActive } = request.body;
+
+		const updatedStation = await stationService.update(id, {
+			name,
+			address,
+			latitude,
+			longitude,
+			idDatalogger,
+			status,
+			...(isActive === undefined ? {} : { isActive }),
+		});
+
+		return reply.send(updatedStation);
+	};
+
+	delete = async (
+		request: FastifyRequest<{ Params: StationParams }>,
+		reply: FastifyReply,
+	) => {
+		const id = Number(request.params.id);
+
+		if (Number.isNaN(id)) {
+			return reply.status(400).send({ message: "Invalid station id" });
+		}
+
+		const station = await stationService.findById(id);
+
+		if (!station) {
+			return reply.status(404).send({ message: "Station not found" });
+		}
+
+		await stationService.delete(id);
+
+		return reply.status(204).send({message: "Station deleted successfully" });
+	};
+
 }
 
 export const stationController = new StationController();

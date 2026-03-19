@@ -1,12 +1,13 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { stationController } from "./controllers/stationController.js";
+import { stationRoutes } from "./routes/stationRoutes.js";
+import { parameterRoutes } from "./routes/parameterRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
         return { status: "ok" };
     });
 
-    fastify.get("/stations", stationController.list);
-    fastify.get("/stations/:id", stationController.findById);
-    fastify.post("/stations", stationController.create);
+    fastify.register(stationRoutes, { prefix: '/stations' })
+    fastify.register(parameterRoutes, { prefix: '/parameter' })
+
 }
