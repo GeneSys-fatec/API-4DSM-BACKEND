@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import { stationRoutes } from "./routes/stationRoutes.js";
 import { parameterRoutes } from "./routes/parameterRoutes.js";
+import { weatherRoutes } from "./routes/weatherRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
@@ -9,5 +10,6 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
 
     fastify.register(stationRoutes, { prefix: '/stations' })
     fastify.register(parameterRoutes, { prefix: '/parameter' })
+    fastify.register(weatherRoutes, { prefix: "/weather" });
 
 }
