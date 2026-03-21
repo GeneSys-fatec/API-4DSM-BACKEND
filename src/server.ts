@@ -3,11 +3,17 @@ import fastify from "fastify";
 import cors from "@fastify/cors";
 import { routes } from "./routes.js";
 
-const app = fastify({logger: true})
+export const app = fastify({logger: true})
 
 const start = async() => {
 
-    await app.register(cors);
+    await app.register(cors, {
+        origin: true,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+        optionsSuccessStatus: 204,
+        strictPreflight: false,
+    });
     await app.register(routes);
 
     try{
