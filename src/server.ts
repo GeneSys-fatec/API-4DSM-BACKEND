@@ -3,7 +3,7 @@ import fastify from "fastify";
 import cors from "@fastify/cors";
 import { routes } from "./routes.js";
 
-const app = fastify({logger: true})
+export const app = fastify({logger: true})
 
 const start = async() => {
 
