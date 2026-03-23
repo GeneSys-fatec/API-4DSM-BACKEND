@@ -26,11 +26,15 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
     "dotenv": "^17.3.1",
     "fastify": "^5.8.2",
+    "fastify-type-provider-zod": "^6.1.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "tsx": "^4.21.0",
-    "typeorm": "^0.3.28"
+    "typeorm": "^0.3.28",
+    "zod": "^4.3.6"
   }
 }
