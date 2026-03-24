@@ -23,6 +23,10 @@ export class ParameterService {
         return this.repository.findOneBy({ id });
     }
 
+    async findByStation(idStation: number): Promise<ParameterEntity[]> {
+        return this.repository.findBy({ idStation });
+    }
+
     async create(data: CreateParameterInput): Promise<ParameterEntity> {
         const parameter = this.repository.create({
             idStation: data.idStation,
@@ -31,6 +35,26 @@ export class ParameterService {
         });
 
         return this.repository.save(parameter);
+    }
+
+    async update(id: number, data: Partial<CreateParameterInput>): Promise<ParameterEntity | null> {
+        const parameter = await this.findById(id);
+        if (!parameter) {
+			return null;
+		}
+
+        Object.assign(parameter, data, { updatedBy: "system" });
+		return this.repository.save(parameter);
+    }
+
+    async delete(id: number): Promise<boolean> {
+        const parameter = await this.findById(id);
+        if (!parameter) {
+			return false;
+		}
+
+        await this.repository.remove(parameter);
+		return true;
     }
 }
 

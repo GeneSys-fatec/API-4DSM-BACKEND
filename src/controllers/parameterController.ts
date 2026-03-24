@@ -19,6 +19,11 @@ export class ParameterController {
         return reply.send(parameters);
     };
 
+    findByStation = async (request: FastifyRequest<{ Params: { idStation: number } }>, reply: FastifyReply) => {
+        const station = request.params.idStation;
+        return reply.send(await parameterService.findByStation(station));
+    }
+
     findById = async (
         request: FastifyRequest<{ Params: ParameterParams }>,
         reply: FastifyReply,
@@ -58,6 +63,55 @@ export class ParameterController {
         });
 
         return reply.status(201).send(parameter);
+    };
+
+    update = async (
+        request: FastifyRequest<{ Params: ParameterParams; Body: CreateParameterBody }>,
+        reply: FastifyReply,
+    ) => {
+        const id = Number(request.params.id);
+
+        if (Number.isNaN(id)) {
+            return reply.status(400).send({ message: "Invalid parameter id" });
+        }
+
+        const parameter = await parameterService.findById(id);
+
+        if (!parameter) {
+            return reply.status(404).send({ message: "Parameter not found" });
+        }
+
+        const { idStation, idTypeParam, key, isActive } = request.body;
+
+        const updatedParameter = await parameterService.update(id, {
+            idStation,
+            idTypeParam,
+            key,
+            ...(isActive === undefined ? {} : { isActive }),
+        });
+
+        return reply.send(updatedParameter);
+    };
+
+    delete = async (
+        request: FastifyRequest<{ Params: ParameterParams }>,
+        reply: FastifyReply,
+    ) => {
+        const id = Number(request.params.id);
+
+        if (Number.isNaN(id)) {
+            return reply.status(400).send({ message: "Invalid parameter id" });
+        }
+
+        const parameter = await parameterService.findById(id);
+
+        if (!parameter) {
+            return reply.status(404).send({ message: "Parameter not found" });
+        }
+
+        await parameterService.delete(id);
+
+        return reply.status(204).send({ message: "Parameter deleted successfully" });
     };
 }
 

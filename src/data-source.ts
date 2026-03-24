@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import * as dotenv from "dotenv";
+import { seedParameterTypes } from "./seeds/parameterTypeSeed.js";
 
 dotenv.config();
 
@@ -18,5 +19,8 @@ export const AppDataSource = new DataSource({
 });
 
 AppDataSource.initialize()
-    .then(() => console.log("Data Source inicializado!"))
+    .then(async () => {
+        console.log("Data Source inicializado!");
+        await seedParameterTypes();
+    })
     .catch((err) => console.error("Erro no Data Source:", err));
