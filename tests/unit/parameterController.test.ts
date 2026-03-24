@@ -29,7 +29,7 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     // Arrange
     const { parameterController } = await import("../../src/controllers/parameterController.js");
     parameterServiceMock.findAll.mockResolvedValueOnce([
-      { id: 1, key: "temperature", idStation: 1 },
+      { id: 1, idStation: 1 },
     ]);
     const reply = makeReply();
 
@@ -38,7 +38,7 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
 
     // Assert
     expect(parameterServiceMock.findAll).toHaveBeenCalledOnce();
-    expect(reply.send).toHaveBeenCalledWith([{ id: 1, key: "temperature", idStation: 1 }]);
+    expect(reply.send).toHaveBeenCalledWith([{ id: 1, idStation: 1 }]);
   });
 
   it("deve retornar 400 ao receber ID inválido para buscar parâmetro", async () => {
@@ -74,14 +74,13 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     const { parameterController } = await import("../../src/controllers/parameterController.js");
     parameterServiceMock.create.mockResolvedValueOnce({
       id: 1,
-      key: "temperature",
       idStation: 1,
     });
     const reply = makeReply();
 
     // Act
     await parameterController.create(
-      { body: { idStation: 1, idTypeParam: 2, key: "temperature" } } as any,
+      { body: { idStation: 1, idTypeParam: 2 } } as any,
       reply
     );
 
@@ -89,7 +88,6 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     expect(parameterServiceMock.create).toHaveBeenCalledWith({
       idStation: 1,
       idTypeParam: 2,
-      key: "temperature",
     });
     expect(reply.status).toHaveBeenCalledWith(201);
   });
@@ -105,7 +103,7 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     // Assert
     expect(reply.status).toHaveBeenCalledWith(400);
     expect(reply.send).toHaveBeenCalledWith({
-      message: "Fields 'idStation', 'idTypeParam', and 'key' are required",
+      message: "Fields 'idStation' and 'idTypeParam' are required",
     });
   });
 });

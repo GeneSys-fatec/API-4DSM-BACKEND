@@ -8,7 +8,6 @@ interface ParameterParams {
 interface CreateParameterBody {
     idStation: number;
     idTypeParam: number;
-    key: string;
     isActive?: boolean;
 }
 
@@ -47,18 +46,17 @@ export class ParameterController {
         request: FastifyRequest<{ Body: CreateParameterBody }>,
         reply: FastifyReply,
     ) => {
-        const { idStation, idTypeParam, key, isActive } = request.body;
+        const { idStation, idTypeParam, isActive } = request.body;
 
-        if (!idStation || !idTypeParam || !key) {
+        if (!idStation || !idTypeParam ) {
             return reply.status(400).send({
-                message: "Fields 'idStation', 'idTypeParam', and 'key' are required",
+                message: "Fields 'idStation' and 'idTypeParam' are required",
             });
         }
 
         const parameter = await parameterService.create({
             idStation,
             idTypeParam,
-            key,
             ...(isActive === undefined ? {} : { isActive }),
         });
 
@@ -81,12 +79,11 @@ export class ParameterController {
             return reply.status(404).send({ message: "Parameter not found" });
         }
 
-        const { idStation, idTypeParam, key, isActive } = request.body;
+        const { idStation, idTypeParam, isActive } = request.body;
 
         const updatedParameter = await parameterService.update(id, {
             idStation,
             idTypeParam,
-            key,
             ...(isActive === undefined ? {} : { isActive }),
         });
 

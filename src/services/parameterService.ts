@@ -4,7 +4,6 @@ import { ParameterEntity } from "../entities/parameterEntity.js";
 export interface CreateParameterInput {
     idStation: number;
     idTypeParam: number;
-    key: string;
     isActive?: boolean;
 }
 
@@ -31,7 +30,6 @@ export class ParameterService {
         const parameter = this.repository.create({
             idStation: data.idStation,
             idTypeParam: data.idTypeParam,
-            key: data.key,
         });
 
         return this.repository.save(parameter);

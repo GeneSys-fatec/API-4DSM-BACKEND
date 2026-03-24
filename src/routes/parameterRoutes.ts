@@ -9,7 +9,6 @@ const parameterIdSchema = z.object({
 const parameterBodySchema = z.object({
     idStation: z.number().int(),
     idTypeParam: z.number().int(),
-    key: z.string(),
     isActive: z.boolean().optional(),
 })
 
