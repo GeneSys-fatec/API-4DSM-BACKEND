@@ -9,30 +9,51 @@ export class CreateParametersTable1762860001000 implements MigrationInterface {
                 columns: [
                     {
                         name: "id",
-                        type: "integer",
+                        type: "serial",
                         isPrimary: true,
-                        isGenerated: true,
-                        generationStrategy: "increment",
                     },
                     {
-                        name: "idStation",
+                        name: "id_station",
                         type: "integer",
-                        isNullable: false,
                     },
                     {
-                        name: "idTypeParam",
+                        name: "id_parameter_type",
                         type: "integer",
-                        isNullable: false,
+                    },
+                    {
+                        name: "sensor_model",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: true,
+                    },
+                    {
+                        name: "active",
+                        type: "boolean",
+                        default: true,
                     },
                     {
                         name: "createdAt",
-                        type: "timestamp",
+                        type: "timestamptz",
                         default: "now()",
                     },
                     {
                         name: "updatedAt",
-                        type: "timestamp",
+                        type: "timestamptz",
                         default: "now()",
+                    },
+                ],
+                foreignKeys: [
+                    {
+                        columnNames: ["id_station"],
+                        referencedTableName: "stations",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
+                    },
+                    {
+                        columnNames: ["id_parameter_type"],
+                        referencedTableName: "parameterTypes",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
                     },
                 ],
             })

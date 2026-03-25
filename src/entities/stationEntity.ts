@@ -10,7 +10,7 @@ import {
 export class StationEntity {
 	@PrimaryGeneratedColumn()
 	id!: number;
-
+	
 	@Column({ type: "varchar", length: 120 })
 	name!: string;
 
