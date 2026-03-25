@@ -19,9 +19,6 @@ export class ParameterEntity {
     @Column({ type: "integer" })
     idTypeParam!: number;
 
-    @Column({ type: "varchar", length: 255 })
-    key!: string;
-
     @CreateDateColumn({ type: "timestamptz" })
     createdAt!: Date;
 

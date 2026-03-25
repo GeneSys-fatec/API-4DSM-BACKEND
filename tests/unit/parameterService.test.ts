@@ -24,14 +24,14 @@ describe("ParameterService - Suporte a Parâmetros Meteorológicos", () => {
     // Arrange
     const { ParameterService } = await import("../../src/services/parameterService.js");
     const service = new ParameterService();
-    repositoryMock.find.mockResolvedValueOnce([{ id: 1, key: "temperature" }]);
+    repositoryMock.find.mockResolvedValueOnce([{ id: 1 }]);
 
     // Act
     const result = await service.findAll();
 
     // Assert
     expect(repositoryMock.find).toHaveBeenCalledWith({ order: { id: "ASC" } });
-    expect(result).toEqual([{ id: 1, key: "temperature" }]);
+    expect(result).toEqual([{ id: 1 }]);
   });
 
   it("deve retornar null ao buscar parâmetro inexistente", async () => {
@@ -58,13 +58,12 @@ describe("ParameterService - Suporte a Parâmetros Meteorológicos", () => {
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
     // Act
-    const result = await service.create({ idStation: 1, idTypeParam: 2, key: "temperature" });
+    const result = await service.create({ idStation: 1, idTypeParam: 2 });
 
     // Assert
     expect(repositoryMock.create).toHaveBeenCalledWith({
       idStation: 1,
-      idTypeParam: 2,
-      key: "temperature",
+      idTypeParam: 2
     });
     expect(repositoryMock.save).toHaveBeenCalledWith(createdEntity);
     expect(result).toEqual({ id: 1, saved: true });

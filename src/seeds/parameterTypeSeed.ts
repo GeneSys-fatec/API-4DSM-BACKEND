@@ -4,6 +4,7 @@ import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 export const defaultParameterTypes = [
     {
         name: "Temperatura",
+        key: "temp",
         unit: "°C",
         factor: 0.1,
         offset: -40,
@@ -11,6 +12,7 @@ export const defaultParameterTypes = [
     },
     {
         name: "Umidade",
+        key: "umid",
         unit: "%",
         factor: 0.5,
         offset: 0,
@@ -18,6 +20,7 @@ export const defaultParameterTypes = [
     },
     {
         name: "Pressão Atmosférica",
+        key: "press",
         unit: "hPa",
         factor: 1,
         offset: 300,
@@ -25,6 +28,7 @@ export const defaultParameterTypes = [
     },
     {
         name: "Precipitação",
+        key: "prec",
         unit: "mm",
         factor: 0.2,
         offset: 0,

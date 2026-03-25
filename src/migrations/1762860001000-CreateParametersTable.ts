@@ -25,11 +25,6 @@ export class CreateParametersTable1762860001000 implements MigrationInterface {
                         isNullable: false,
                     },
                     {
-                        name: "key",
-                        type: "varchar",
-                        isNullable: false,
-                    },
-                    {
                         name: "createdAt",
                         type: "timestamp",
                         default: "now()",
