@@ -12,6 +12,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     fastify.register(stationRoutes, { prefix: '/stations' })
     fastify.register(parameterRoutes, { prefix: '/parameters' })
     fastify.register(parameterTypeRoutes, { prefix: "/parameter-types" })
+    fastify.register(parameterRoutes, {prefix: '/parameter-limits'})
     fastify.register(weatherRoutes, { prefix: "/weather" });
 
 }
