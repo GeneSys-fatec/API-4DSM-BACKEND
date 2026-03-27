@@ -3,7 +3,7 @@ import { z } from "zod";
 import { parameterTypeController } from "../controllers/parameterTypeController.js";
 
 const parameterTypeIdSchema = z.object({
-    id: z.string().describe("Parameter type id"),
+    id: z.string().describe("ID do tipo de parâmetro"),
 });
 
 const numericInputSchema = z.preprocess((value) => {
