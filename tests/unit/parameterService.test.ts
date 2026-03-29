@@ -58,13 +58,12 @@ describe("ParameterService - Suporte a Parâmetros Meteorológicos", () => {
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
     // Act
-    const result = await service.create({ idStation: 1, idTypeParam: 2, key: "temperature" });
+    const result = await service.create({ idStation: 1, idTypeParam: 2, isActive: true });
 
     // Assert
     expect(repositoryMock.create).toHaveBeenCalledWith({
       idStation: 1,
       idTypeParam: 2,
-      key: "temperature",
     });
     expect(repositoryMock.save).toHaveBeenCalledWith(createdEntity);
     expect(result).toEqual({ id: 1, saved: true });

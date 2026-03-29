@@ -89,7 +89,6 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     expect(parameterServiceMock.create).toHaveBeenCalledWith({
       idStation: 1,
       idTypeParam: 2,
-      key: "temperature",
     });
     expect(reply.status).toHaveBeenCalledWith(201);
   });
@@ -105,7 +104,7 @@ describe("ParameterController - Suporte a Parâmetros Meteorológicos", () => {
     // Assert
     expect(reply.status).toHaveBeenCalledWith(400);
     expect(reply.send).toHaveBeenCalledWith({
-      message: "Fields 'idStation', 'idTypeParam', and 'key' are required",
+      message: "Fields 'idStation' and 'idTypeParam' are required",
     });
   });
 });

@@ -8,6 +8,9 @@ export class parameterTypeEntity {
     @Column({ type: "varchar", length: 120 })
     name!: string;
 
+    @Column({ type: "varchar", length: 50, name: "json_key" })
+    json_key!: string;
+
     @Column({ type: "varchar", length: 20 })
     unit!: string;
 
