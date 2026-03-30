@@ -2,7 +2,7 @@ import { AppDataSource } from "../data-source.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 
 export interface CreateParameterTypeInput {
-	key: string;
+	json_key: string;
 	name: string;
 	unit: string;
 	factor: number;
@@ -27,7 +27,7 @@ export class ParameterTypeService {
 
 	async create(data: CreateParameterTypeInput): Promise<parameterTypeEntity> {
 		const parameterType = this.repository.create({
-			key: data.key,
+			json_key: data.json_key,
 			name: data.name,
 			unit: data.unit,
 			factor: data.factor,

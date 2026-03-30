@@ -11,11 +11,7 @@ export class ParameterService {
     private readonly repository = AppDataSource.getRepository(ParameterEntity);
 
     async findAll(): Promise<ParameterEntity[]> {
-        return this.repository.find({
-            order: {
-                id: "ASC",
-            },
-        });
+        return this.repository.find({ order: { id: "ASC" } });
     }
 
     async findById(id: number): Promise<ParameterEntity | null> {
@@ -37,20 +33,14 @@ export class ParameterService {
 
     async update(id: number, data: Partial<CreateParameterInput>): Promise<ParameterEntity | null> {
         const parameter = await this.findById(id);
-        if (!parameter) {
-			return null;
-		}
-
+        if (!parameter) return null;
         Object.assign(parameter, data, { updatedBy: "system" });
 		return this.repository.save(parameter);
     }
 
     async delete(id: number): Promise<boolean> {
         const parameter = await this.findById(id);
-        if (!parameter) {
-			return false;
-		}
-
+        if (!parameter) return false;
         await this.repository.remove(parameter);
 		return true;
     }

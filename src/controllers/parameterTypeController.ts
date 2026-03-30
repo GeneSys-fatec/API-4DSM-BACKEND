@@ -6,7 +6,7 @@ interface ParameterTypeParams {
 }
 
 interface CreateParameterTypeBody {
-    key: string;
+    json_key: string;
     name: string;
     unit: string;
     factor: number;
@@ -40,20 +40,17 @@ export class ParameterTypeController {
         return reply.send(parameterType);
     };
 
-    create = async (
-        request: FastifyRequest<{ Body: CreateParameterTypeBody }>,
-        reply: FastifyReply,
-    ) => {
-        const { key, name, unit, factor, offset, description } = request.body;
+    create = async (request: FastifyRequest<{ Body: CreateParameterTypeBody }>, reply: FastifyReply) => {
+        const { json_key, name, unit, factor, offset, description } = request.body; 
 
-        if (!key || !name || !unit || factor === undefined || offset === undefined) {
+        if (!json_key || !name || !unit || factor === undefined || offset === undefined) { 
             return reply.status(400).send({
-                message: "Os campos 'key', 'name', 'unit', 'factor' e 'offset' são obrigatórios.",
+                message: "Os campos 'json_key', 'name', 'unit', 'factor' e 'offset' são obrigatórios.",
             });
         }
 
         const parameterType = await parameterTypeService.create({
-            key,
+            json_key,
             name,
             unit,
             factor,
@@ -80,10 +77,11 @@ export class ParameterTypeController {
             return reply.status(404).send({ message: "Parâmetro não encontrado." });
         }
 
-        const { key, name, unit, factor, offset, description } = request.body;
+        
+        const { json_key, name, unit, factor, offset, description } = request.body;
 
         const dataToUpdate = {
-            ...(key === undefined ? {} : { key }),
+            ...(json_key === undefined ? {} : { json_key }), 
             ...(name === undefined ? {} : { name }),
             ...(unit === undefined ? {} : { unit }),
             ...(factor === undefined ? {} : { factor }),

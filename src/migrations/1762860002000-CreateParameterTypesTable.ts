@@ -27,6 +27,12 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                         isNullable: false,
                     },
                     {
+                        name: "json_key",
+                        type: "varchar",
+                        length: "50",
+                        isNullable: false,
+                    },
+                    {
                         name: "unit",
                         type: "varchar",
                         length: "20",
@@ -54,13 +60,13 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                     },
                     {
                         name: "createdAt",
-                        type: "timestamp",
-                        default: "now()",
+                        type: "timestamp with time zone",
+                        default: "CURRENT_TIMESTAMP",
                     },
                     {
                         name: "updatedAt",
-                        type: "timestamp",
-                        default: "now()",
+                        type: "timestamp with time zone",
+                        default: "CURRENT_TIMESTAMP",
                     },
                 ],
             })

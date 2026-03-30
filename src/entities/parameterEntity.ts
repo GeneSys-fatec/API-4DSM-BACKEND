@@ -1,33 +1,15 @@
-import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    JoinColumn,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
-} from "typeorm";
-import { StationEntity } from "./stationEntity.js";
-import { parameterTypeEntity } from "./parameterTypeEntity.js";
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity({ name: "parameters" })
 export class ParameterEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => StationEntity)
-    @JoinColumn({ name: "id_station" })
-    idStation!: StationEntity;
+    @Column({ type: "integer" })
+    idStation!: number;
 
-    @ManyToOne(() => parameterTypeEntity)
-    @JoinColumn({ name: "id_parameter_type" })
-    idParameterType!: parameterTypeEntity;
-
-    @Column({ type: "varchar", length: 100, nullable: true })
-    sensor_model?: string;
-
-    @Column({ type: "boolean", default: true })
-    active!: boolean;
+    @Column({ type: "integer" })
+    idTypeParam!: number;
 
     @CreateDateColumn({ type: "timestamptz" })
     createdAt!: Date;

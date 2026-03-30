@@ -15,7 +15,7 @@ const numericInputSchema = z.preprocess((value) => {
 }, z.number());
 
 const parameterTypeCreateBodySchema = z.object({
-    key: z.string().trim().min(1).max(6),
+    json_key: z.string().trim().min(1).max(6),
     name: z.string(),
     unit: z.string(),
     factor: numericInputSchema,
