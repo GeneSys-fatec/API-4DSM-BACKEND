@@ -52,7 +52,7 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
     const result = await service.create({
-      key: "press",
+      json_key: "surface_pressure",
       name: "Pressão",
       unit: "hPa",
       factor: 1,
@@ -61,7 +61,7 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
     });
 
     expect(repositoryMock.create).toHaveBeenCalledWith({
-      key: "press",
+      json_key: "surface_pressure",
       name: "Pressão",
       unit: "hPa",
       factor: 1,
@@ -87,7 +87,7 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
     const { ParameterTypeService } = await import("../../src/services/parameterTypeService.js");
     const service = new ParameterTypeService();
 
-    const existing = { id: 1, key: "temp", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" };
+    const existing = { id: 1, json_key: "temperature_2m", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" };
     repositoryMock.findOneBy.mockResolvedValueOnce(existing);
     repositoryMock.save.mockResolvedValueOnce({ ...existing, name: "Temperatura externa" });
 
@@ -95,7 +95,7 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
 
     expect(repositoryMock.save).toHaveBeenCalledWith({
       id: 1,
-      key: "temp",
+      json_key: "temperature_2m",
       name: "Temperatura externa",
       unit: "C",
       factor: 1,
@@ -104,7 +104,7 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
     });
     expect(result).toEqual({
       id: 1,
-      key: "temp",
+      json_key: "temperature_2m",
       name: "Temperatura externa",
       unit: "C",
       factor: 1,

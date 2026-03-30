@@ -5,9 +5,6 @@ export class parameterTypeEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ type: "varchar", length: 6 })
-    key!: string;
-
     @Column({ type: "varchar", length: 120 })
     name!: string;
 

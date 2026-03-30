@@ -5,6 +5,7 @@ import { routes } from "./routes.js";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import { validatorCompiler, serializerCompiler, type ZodTypeProvider, jsonSchemaTransform, jsonSchemaTransformObject } from "fastify-type-provider-zod";
+import { initializeDatabase } from "./data-source.js";
 
 const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 
@@ -12,6 +13,8 @@ app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 
 const start = async () => {
+    await initializeDatabase();
+
     await app.register(fastifySwagger, {
         openapi: {
             info: {
