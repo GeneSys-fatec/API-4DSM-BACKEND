@@ -15,6 +15,12 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                         generationStrategy: "increment",
                     },
                     {
+                        name: "key",
+                        type: "varchar",
+                        length: "6",
+                        isNullable: false,
+                    },
+                    {
                         name: "name",
                         type: "varchar",
                         length: "120",
@@ -50,7 +56,7 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                         name: "description",
                         type: "varchar",
                         length: "120",
-                        isNullable: false,
+                        isNullable: true,
                     },
                     {
                         name: "createdAt",

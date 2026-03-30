@@ -14,13 +14,18 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_DATABASE!,
     synchronize: true, 
     logging: ["query", "error"],
-    entities: ["src/entities/*.ts"], 
-    migrations: ["src/migrations/*.ts"],
+    entities: ["src/entities/*.ts"],
 });
 
 AppDataSource.initialize()
     .then(async () => {
-        console.log("Data Source inicializado!");
-        await seedParameterTypes();
+        console.log("Data Source inicializado e sincronizado!");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            await seedParameterTypes();
+            console.log("Seed executado com sucesso!");
+        } catch (seedError) {
+            console.error("Erro ao executar seed:", seedError);
+        }
     })
     .catch((err) => console.error("Erro no Data Source:", err));

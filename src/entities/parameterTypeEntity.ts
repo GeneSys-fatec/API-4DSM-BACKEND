@@ -5,6 +5,9 @@ export class parameterTypeEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    @Column({ type: "varchar", length: 6 })
+    key!: string;
+
     @Column({ type: "varchar", length: 120 })
     name!: string;
 
@@ -21,7 +24,7 @@ export class parameterTypeEntity {
     offset!: number;
 
     @Column({ type: "varchar", length: 120 })
-    description!: string;
+    description?: string;
 
     @CreateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
     createdAt!: Date;

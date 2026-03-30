@@ -24,14 +24,14 @@ describe("ParameterService - Suporte a Parâmetros Meteorológicos", () => {
     // Arrange
     const { ParameterService } = await import("../../src/services/parameterService.js");
     const service = new ParameterService();
-    repositoryMock.find.mockResolvedValueOnce([{ id: 1, key: "temperature" }]);
+    repositoryMock.find.mockResolvedValueOnce([{ id: 1 }]);
 
     // Act
     const result = await service.findAll();
 
     // Assert
     expect(repositoryMock.find).toHaveBeenCalledWith({ order: { id: "ASC" } });
-    expect(result).toEqual([{ id: 1, key: "temperature" }]);
+    expect(result).toEqual([{ id: 1 }]);
   });
 
   it("deve retornar null ao buscar parâmetro inexistente", async () => {

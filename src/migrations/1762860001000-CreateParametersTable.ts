@@ -9,22 +9,19 @@ export class CreateParametersTable1762860001000 implements MigrationInterface {
                 columns: [
                     {
                         name: "id",
-                        type: "integer",
+                        type: "serial",
                         isPrimary: true,
-                        isGenerated: true,
-                        generationStrategy: "increment",
                     },
                     {
-                        name: "idStation",
+                        name: "id_station",
                         type: "integer",
-                        isNullable: false,
                     },
                     {
-                        name: "idTypeParam",
+                        name: "id_parameter_type",
                         type: "integer",
-                        isNullable: false,
                     },
                     {
+<<<<<<< HEAD
                         name: "createdAt",
                         type: "timestamp with time zone",
                         default: "CURRENT_TIMESTAMP",
@@ -33,6 +30,41 @@ export class CreateParametersTable1762860001000 implements MigrationInterface {
                         name: "updatedAt",
                         type: "timestamp with time zone",
                         default: "CURRENT_TIMESTAMP",
+=======
+                        name: "sensor_model",
+                        type: "varchar",
+                        length: "100",
+                        isNullable: true,
+                    },
+                    {
+                        name: "active",
+                        type: "boolean",
+                        default: true,
+                    },
+                    {
+                        name: "createdAt",
+                        type: "timestamptz",
+                        default: "now()",
+                    },
+                    {
+                        name: "updatedAt",
+                        type: "timestamptz",
+                        default: "now()",
+>>>>>>> 1f611c90cad980483c4e7ff0f69f48c2ab6f2a78
+                    },
+                ],
+                foreignKeys: [
+                    {
+                        columnNames: ["id_station"],
+                        referencedTableName: "stations",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
+                    },
+                    {
+                        columnNames: ["id_parameter_type"],
+                        referencedTableName: "parameterTypes",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
                     },
                 ],
             })
