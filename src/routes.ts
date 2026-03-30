@@ -4,9 +4,9 @@ import { parameterRoutes } from "./routes/parameterRoutes.js";
 import { parameterTypeRoutes } from "./routes/parameterTypeRoutes.js";
 import { weatherRoutes } from "./routes/weatherRoutes.js";
 import { parameterLimitsRoutes } from "./routes/parameterLimitsRoutes.js";
-import { administratorRoutes } from "./routes/administratorRoutes.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { authenticate } from "./middleware/authenticate.js";
+import { administratorRoutes } from "./routes/administratorRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
