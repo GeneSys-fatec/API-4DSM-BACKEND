@@ -1,6 +1,6 @@
 import { EncryptJWT } from "jose";
-import { administratorRepository } from "../repositories/administratorRepository.js";
 import bcrypt from "bcrypt";
+import { administratorRepository } from "../repositories/administratorRepository.js";
 
 interface LoginProps{
     email: string;
