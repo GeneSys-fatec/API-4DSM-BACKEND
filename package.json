@@ -7,6 +7,11 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "db:cli": "node --import tsx ./node_modules/typeorm/cli.js",
+    "db:sync": "npm run db:cli -- schema:sync -d src/data-source.ts",
+    "db:drop": "npm run db:cli -- schema:drop -d src/data-source.ts",
+    "db:refresh": "npm run db:drop && npm run db:sync",
+    "db:reset": "npm run db:cli -- migration:revert -d src/data-source.ts",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",

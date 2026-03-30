@@ -15,18 +15,18 @@ describe("Entity Relationships", () => {
         // Test that parameterTypeEntity exists and has expected properties
         const paramType = new parameterTypeEntity();
         paramType.id = 1;
-        paramType.key = "TST";
+        paramType.json_key = "temperature_2m";
         paramType.name = "Temperature";
-        expect(paramType.key).toBe("TST");
+        expect(paramType.json_key).toBe("temperature_2m");
         expect(paramType.name).toBe("Temperature");
 
         // Test that ParameterEntity exists and has expected properties
         const parameter = new ParameterEntity();
         parameter.id = 1;
-        parameter.sensor_model = "S-456";
-        parameter.active = true;
-        expect(parameter.sensor_model).toBe("S-456");
-        expect(parameter.active).toBe(true);
+        parameter.idStation = 1;
+        parameter.idTypeParam = 2;
+        expect(parameter.idStation).toBe(1);
+        expect(parameter.idTypeParam).toBe(2);
     });
 
     it("should be able to create instances of all entities", () => {

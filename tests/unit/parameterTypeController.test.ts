@@ -30,7 +30,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
   it("deve listar todos os tipos de parâmetro cadastrados", async () => {
     const { parameterTypeController } = await import("../../src/controllers/parameterTypeController.js");
     parameterTypeServiceMock.findAll.mockResolvedValueOnce([
-      { id: 1, key: "temp", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" },
+      { id: 1, json_key: "temperature_2m", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" },
     ]);
     const reply = makeReply();
 
@@ -38,7 +38,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
 
     expect(parameterTypeServiceMock.findAll).toHaveBeenCalledOnce();
     expect(reply.send).toHaveBeenCalledWith([
-      { id: 1, key: "temp", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" },
+      { id: 1, json_key: "temperature_2m", name: "Temperatura", unit: "C", factor: 1, offset: 0, description: "" },
     ]);
   });
 
@@ -68,7 +68,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
     const { parameterTypeController } = await import("../../src/controllers/parameterTypeController.js");
     parameterTypeServiceMock.create.mockResolvedValueOnce({
       id: 1,
-      key: "press",
+      json_key: "surface_pressure",
       name: "Pressão",
       unit: "hPa",
       factor: 1,
@@ -80,7 +80,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
     await parameterTypeController.create(
       {
         body: {
-          key: "press",
+          json_key: "surface_pressure",
           name: "Pressão",
           unit: "hPa",
           factor: 1,
@@ -91,7 +91,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
     );
 
     expect(parameterTypeServiceMock.create).toHaveBeenCalledWith({
-      key: "press",
+      json_key: "surface_pressure",
       name: "Pressão",
       unit: "hPa",
       factor: 1,
@@ -108,7 +108,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
     await parameterTypeController.create(
       {
         body: {
-          key: "",
+          json_key: "",
           name: "",
           unit: "",
           factor: undefined,
@@ -120,7 +120,7 @@ describe("ParameterTypeController - Suporte a Tipos de Parâmetro", () => {
 
     expect(reply.status).toHaveBeenCalledWith(400);
     expect(reply.send).toHaveBeenCalledWith({
-      message: "Os campos 'key', 'name', 'unit', 'factor' e 'offset' são obrigatórios.",
+      message: "Os campos 'json_key', 'name', 'unit', 'factor' e 'offset' são obrigatórios.",
     });
   });
 
