@@ -6,19 +6,29 @@ import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import { validatorCompiler, serializerCompiler, type ZodTypeProvider, jsonSchemaTransform, jsonSchemaTransformObject } from "fastify-type-provider-zod";
 
-const app = fastify({logger: true}).withTypeProvider<ZodTypeProvider>();
+const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 
-const start = async() => {
+const start = async () => {
     await app.register(fastifySwagger, {
         openapi: {
             info: {
                 title: "API 4DSM",
                 description: "Documentação da API",
                 version: "1.0.0"
-            }
+            },
+            components: {
+                securitySchemes: {
+                    bearerAuth: {
+                        type: "http",
+                        scheme: "bearer",
+                        bearerFormat: "JWT"
+                    }
+                }
+            },
+            security: [{ bearerAuth: [] }]
         },
         transform: jsonSchemaTransform,
         transformObject: jsonSchemaTransformObject
@@ -37,10 +47,10 @@ const start = async() => {
     });
     await app.register(routes);
 
-    try{
-        await app.listen({ port: 3333, host: '0.0.0.0'})
+    try {
+        await app.listen({ port: 3333, host: '0.0.0.0' })
     }
-    catch(err){
+    catch (err) {
         process.exit(1)
     }
 }

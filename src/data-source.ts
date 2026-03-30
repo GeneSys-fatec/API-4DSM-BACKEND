@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import * as dotenv from "dotenv";
 import { seedParameterTypes } from "./seeds/parameterTypeSeed.js";
+import { seedAdministrator } from "./seeds/administratorSeed.js";
 
 dotenv.config();
 
@@ -23,9 +24,10 @@ AppDataSource.initialize()
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
             await seedParameterTypes();
-            console.log("Seed executado com sucesso!");
+            await seedAdministrator();
+            console.log("Seeds executado com sucesso!");
         } catch (seedError) {
-            console.error("Erro ao executar seed:", seedError);
+            console.error("Erro ao executar seeds:", seedError);
         }
     })
     .catch((err) => console.error("Erro no Data Source:", err));
