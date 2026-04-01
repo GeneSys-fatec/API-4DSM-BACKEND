@@ -50,10 +50,11 @@ jobs:
             git fetch origin
             git checkout release
             git pull origin release
-            npm ci --production
+            npm ci
             npm run build
-            pm2 restart backend --update-env
-      # - name: Deploy frontend to EC2 (release)
+            npm prune --production
+            pm2 startOrRestart ecosystem.config.cjs --only backend --update-env
+      # - name: Deploy frontend to EC2 (staging)
       #   uses: appleboy/ssh-action@v1.0.3
       #   with:
       #     host: ${{ secrets.RELEASE_EC2_HOST }}
@@ -92,17 +93,17 @@ jobs:
             npm ci --production
             npm run build
             pm2 restart backend --update-env
-      - name: Deploy frontend to EC2 (production)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_EC2_HOST }}
-          username: ${{ secrets.PROD_EC2_USER }}
-          key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          script: |
-            cd ~/app/frontend
-            git fetch origin
-            git checkout master
-            git pull origin master
-            npm ci --production
-            npm run build
-            pm2 restart frontend --update-env
+      # - name: Deploy frontend to EC2 (production)
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.PROD_EC2_HOST }}
+      #     username: ${{ secrets.PROD_EC2_USER }}
+      #     key: ${{ secrets.PROD_EC2_SSH_KEY }}
+      #     script: |
+      #       cd ~/app/frontend
+      #       git fetch origin
+      #       git checkout master
+      #       git pull origin master
+      #       npm ci --production
+      #       npm run build
+      #       pm2 restart frontend --update-env
