@@ -44,6 +44,14 @@ export class CreateParameterLimitsTable1762860003000 implements MigrationInterfa
                         default: "now()",
                     },
                 ],
+                foreignKeys: [
+                    {
+                        columnNames: ["idTypeParam"],
+                        referencedTableName: "parameterTypes",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE"
+                    }
+                ]
             })
         );
     }
