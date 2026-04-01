@@ -1,12 +1,14 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { parameterTypeEntity } from "./parameterTypeEntity.js";
 
 @Entity({ name: "parameterLimits" })
 export class parameterLimitsEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ type: "integer" })
-    idTypeParam!: number;
+    @OneToOne(() => parameterTypeEntity)
+    @JoinColumn({ name: "idTypeParam" })
+    idTypeParam!: parameterTypeEntity;
 
     @Column({ type: "numeric", precision: 10, scale: 2  })
     minExpected!: number;
