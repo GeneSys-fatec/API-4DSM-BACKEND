@@ -29,22 +29,22 @@ jobs:
       - name: Test
         run: npm run test:unit
 
-  deploy-staging:
+  deploy-release:
     runs-on: ubuntu-latest
     needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/release'
-    environment: staging
+    environment: release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Deploy backend to EC2 (staging)
+      - name: Deploy backend to EC2 (release)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.STAGING_EC2_HOST }}
-          username: ${{ secrets.STAGING_EC2_USER }}
-          key: ${{ secrets.STAGING_EC2_SSH_KEY }}
+          host: ${{ secrets.RELEASE_EC2_HOST }}
+          username: ${{ secrets.RELEASE_EC2_USER }}
+          key: ${{ secrets.RELEASE_EC2_SSH_KEY }}
           script: |
             cd ~/app/backend
             git fetch origin
@@ -53,12 +53,12 @@ jobs:
             npm ci --production
             npm run build
             pm2 restart backend --update-env
-      # - name: Deploy frontend to EC2 (staging)
+      # - name: Deploy frontend to EC2 (release)
       #   uses: appleboy/ssh-action@v1.0.3
       #   with:
-      #     host: ${{ secrets.STAGING_EC2_HOST }}
-      #     username: ${{ secrets.STAGING_EC2_USER }}
-      #     key: ${{ secrets.STAGING_EC2_SSH_KEY }}
+      #     host: ${{ secrets.RELEASE_EC2_HOST }}
+      #     username: ${{ secrets.RELEASE_EC2_USER }}
+      #     key: ${{ secrets.RELEASE_EC2_SSH_KEY }}
       #     script: |
       #       cd ~/app/frontend
       #       git fetch origin
