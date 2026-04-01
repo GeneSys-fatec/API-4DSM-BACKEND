@@ -53,20 +53,20 @@ jobs:
             npm ci --production
             npm run build
             pm2 restart backend --update-env
-      - name: Deploy frontend to EC2 (staging)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_EC2_HOST }}
-          username: ${{ secrets.STAGING_EC2_USER }}
-          key: ${{ secrets.STAGING_EC2_SSH_KEY }}
-          script: |
-            cd ~/app/frontend
-            git fetch origin
-            git checkout release
-            git pull origin release
-            npm ci --production
-            npm run build
-            pm2 restart frontend --update-env
+      # - name: Deploy frontend to EC2 (staging)
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.STAGING_EC2_HOST }}
+      #     username: ${{ secrets.STAGING_EC2_USER }}
+      #     key: ${{ secrets.STAGING_EC2_SSH_KEY }}
+      #     script: |
+      #       cd ~/app/frontend
+      #       git fetch origin
+      #       git checkout release
+      #       git pull origin release
+      #       npm ci --production
+      #       npm run build
+      #       pm2 restart frontend --update-env
 
   deploy-production:
     runs-on: ubuntu-latest
