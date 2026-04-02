@@ -51,11 +51,9 @@ jobs:
             git checkout develop
             git pull origin develop
             npm ci
-            npm run build
-            npm prune --production
             pm2 describe backend > /dev/null 2>&1 \
               && pm2 restart backend --update-env \
-              || pm2 start dist/server.js --name backend
+              || pm2 start npm --name "backend" -- start
 
   deploy-release:
     runs-on: ubuntu-latest
@@ -79,11 +77,9 @@ jobs:
             git checkout release
             git pull origin release
             npm ci
-            npm run build
-            npm prune --production
             pm2 describe backend > /dev/null 2>&1 \
               && pm2 restart backend --update-env \
-              || pm2 start dist/server.js --name backend
+              || pm2 start npm --name "backend" -- start
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -107,8 +103,6 @@ jobs:
             git checkout master
             git pull origin master
             npm ci
-            npm run build
-            npm prune --production
             pm2 describe backend > /dev/null 2>&1 \
               && pm2 restart backend --update-env \
-              || pm2 start dist/server.js --name backend
+              || pm2 start npm --name "backend" -- start
