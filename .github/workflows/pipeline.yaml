@@ -53,7 +53,9 @@ jobs:
             npm ci
             npm run build
             npm prune --production
-            pm2 startOrRestart ecosystem.config.cjs --only backend --update-env
+            pm2 describe backend > /dev/null 2>&1 \
+              && pm2 restart backend --update-env \
+              || pm2 start dist/server.js --name backend
 
   deploy-release:
     runs-on: ubuntu-latest
@@ -79,21 +81,9 @@ jobs:
             npm ci
             npm run build
             npm prune --production
-            pm2 startOrRestart ecosystem.config.cjs --only backend --update-env
-      # - name: Deploy frontend to EC2 (release)
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.RELEASE_EC2_HOST }}
-      #     username: ${{ secrets.RELEASE_EC2_USER }}
-      #     key: ${{ secrets.RELEASE_EC2_SSH_KEY }}
-      #     script: |
-      #       cd ~/app/frontend
-      #       git fetch origin
-      #       git checkout release
-      #       git pull origin release
-      #       npm ci --production
-      #       npm run build
-      #       pm2 restart frontend --update-env
+            pm2 describe backend > /dev/null 2>&1 \
+              && pm2 restart backend --update-env \
+              || pm2 start dist/server.js --name backend
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -116,20 +106,9 @@ jobs:
             git fetch origin
             git checkout master
             git pull origin master
-            npm ci --production
+            npm ci
             npm run build
-            pm2 restart backend --update-env
-      # - name: Deploy frontend to EC2 (production)
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.PROD_EC2_HOST }}
-      #     username: ${{ secrets.PROD_EC2_USER }}
-      #     key: ${{ secrets.PROD_EC2_SSH_KEY }}
-      #     script: |
-      #       cd ~/app/frontend
-      #       git fetch origin
-      #       git checkout master
-      #       git pull origin master
-      #       npm ci --production
-      #       npm run build
-      #       pm2 restart frontend --update-env
+            npm prune --production
+            pm2 describe backend > /dev/null 2>&1 \
+              && pm2 restart backend --update-env \
+              || pm2 start dist/server.js --name backend
