@@ -63,7 +63,7 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                         default: "CURRENT_TIMESTAMP",
                     },
                 ],
-            })
+            }),
         );
     }
 
