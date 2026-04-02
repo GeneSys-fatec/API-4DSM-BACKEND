@@ -219,7 +219,7 @@ export class AlertService {
         const savedMeasurement = await this.measurementRepository.save(measurement);
 
         const limits = await this.parameterLimitsRepository.findOneBy({
-            idTypeParam: parameter.idTypeParam,
+            idTypeParam: { id: parameter.idTypeParam } as parameterTypeEntity,
         });
 
         if (!limits) {
