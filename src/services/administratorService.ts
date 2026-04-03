@@ -9,9 +9,9 @@ export default interface CreateAdministratorProps {
 
 interface UpdateAdministratorProps {
     id: number;
-    newEmail?: string;
-    newName?: string;
-    newPassword?: string;
+    newEmail?: string | undefined;
+    newName?: string | undefined;
+    newPassword?: string | undefined;
 }
 
 interface DeleteAdministratorProps {
@@ -47,6 +47,20 @@ export class AdministratorService {
         const administrators = await administratorRepository.find();
 
         return administrators;
+    }
+
+    async listById(id: number) {
+        if (!id) {
+            throw new Error("O ID é necessário para a busca.");
+        }
+
+        const administrator = await administratorRepository.findOne({ where: { id } });
+
+        if (!administrator) {
+            throw new Error("Administrador não encontrado.");
+        }
+
+        return administrator;
     }
 
     async update({ id, newEmail, newName, newPassword }: UpdateAdministratorProps) {
