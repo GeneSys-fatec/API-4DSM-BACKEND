@@ -45,7 +45,7 @@ export class CreateParametersTable1762860001000 implements MigrationInterface {
                         onDelete: "CASCADE",
                     },
                 ],
-            })
+            }),
         );
     }
 

@@ -1,62 +1,61 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 import { Table } from "typeorm";
 
-export class CreateParameterLimitsTable1762860003000 implements MigrationInterface {
+export class CreateMeasurementsTable1762860004000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({
-                name: "parameterLimits",
+                name: "measurements",
                 columns: [
                     {
                         name: "id",
-                        type: "integer",
+                        type: "bigint",
                         isPrimary: true,
                         isGenerated: true,
                         generationStrategy: "increment",
                     },
                     {
-                        name: "idTypeParam",
+                        name: "id_parameter",
                         type: "integer",
                         isNullable: false,
                     },
                     {
-                        name: "minExpected",
+                        name: "raw_value",
                         type: "numeric",
-                        precision: 10,
-                        scale: 2,
+                        precision: 12,
+                        scale: 4,
                         isNullable: false,
                     },
                     {
-                        name: "maxExpected",
+                        name: "value",
                         type: "numeric",
-                        precision: 10,
-                        scale: 2,
+                        precision: 12,
+                        scale: 4,
                         isNullable: false,
                     },
                     {
-                        name: "createdAt",
-                        type: "timestamp",
-                        default: "now()",
+                        name: "collected_at",
+                        type: "timestamp with time zone",
+                        isNullable: false,
                     },
                     {
-                        name: "updatedAt",
-                        type: "timestamp",
-                        default: "now()",
+                        name: "received_at",
+                        type: "timestamp with time zone",
+                        default: "CURRENT_TIMESTAMP",
                     },
                 ],
                 foreignKeys: [
                     {
-                        columnNames: ["idTypeParam"],
-                        referencedTableName: "parameterTypes",
+                        columnNames: ["id_parameter"],
+                        referencedTableName: "parameters",
                         referencedColumnNames: ["id"],
-                        onDelete: "CASCADE"
-                    }
-                ]
-            })
+                    },
+                ],
+            }),
         );
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("parameterLimits");
+        await queryRunner.dropTable("measurements");
     }
 }

@@ -13,11 +13,14 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USERNAME!,
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_DATABASE!,
-    synchronize: true,
-    dropSchema: true,
+    synchronize: false,
+    dropSchema: false,
     logging: ["query", "error"],
     entities: ["src/entities/*.ts"],
     migrations: ["src/migrations/*.ts"],
+    ssl: {
+        rejectUnauthorized: false,
+    },
 });
 
 export async function initializeDatabase(): Promise<void> {

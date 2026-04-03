@@ -7,6 +7,7 @@ import { parameterLimitsRoutes } from "./routes/parameterLimitsRoutes.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { administratorRoutes } from "./routes/administratorRoutes.js";
+import { alertRoutes } from "./routes/alertRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
@@ -21,6 +22,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
         protectedRoutes.register(parameterRoutes, { prefix: '/parameters' })
         protectedRoutes.register(parameterTypeRoutes, { prefix: "/parameter-types" })
         protectedRoutes.register(parameterLimitsRoutes, { prefix: "/parameter-limits" })
+        protectedRoutes.register(alertRoutes, { prefix: "/alerts" })
         protectedRoutes.register(weatherRoutes, { prefix: "/weather" })
         protectedRoutes.register(administratorRoutes, {prefix: "/administrator"});
     })

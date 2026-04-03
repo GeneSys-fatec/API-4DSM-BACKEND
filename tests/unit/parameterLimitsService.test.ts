@@ -40,7 +40,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
 
     const result = await service.findByTypeParam(2);
 
-    expect(repositoryMock.findBy).toHaveBeenCalledWith({ idTypeParam: 2 });
+    expect(repositoryMock.findBy).toHaveBeenCalledWith({ idTypeParam: { id: 2 } });
     expect(result).toEqual([{ id: 10, idTypeParam: 2 }]);
   });
 
@@ -70,7 +70,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     });
 
     expect(repositoryMock.create).toHaveBeenCalledWith({
-      idTypeParam: 3,
+      idTypeParam: { id: 3 },
       minExpected: 5,
       maxExpected: 35,
     });
@@ -93,7 +93,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
 
-    const existing = { id: 1, idTypeParam: 1, minExpected: 10, maxExpected: 20 };
+    const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
     repositoryMock.findOneBy.mockResolvedValueOnce(existing);
     repositoryMock.save.mockResolvedValueOnce({ ...existing, maxExpected: 22 });
 
@@ -101,13 +101,13 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
 
     expect(repositoryMock.save).toHaveBeenCalledWith({
       id: 1,
-      idTypeParam: 1,
+      idTypeParam: { id: 1 },
       minExpected: 10,
       maxExpected: 22,
     });
     expect(result).toEqual({
       id: 1,
-      idTypeParam: 1,
+      idTypeParam: { id: 1 },
       minExpected: 10,
       maxExpected: 22,
     });
@@ -128,7 +128,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
 
-    const existing = { id: 1, idTypeParam: 1 };
+    const existing = { id: 1, idTypeParam: { id: 1 } };
     repositoryMock.findOneBy.mockResolvedValueOnce(existing);
     repositoryMock.remove.mockResolvedValueOnce(undefined);
 

@@ -1,5 +1,6 @@
 import { AppDataSource } from "../data-source.js";
 import { parameterLimitsEntity } from "../entities/parameterLimitsEntity.js";
+import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 
 export interface CreateParameterLimitsInput {
 	idTypeParam: number;
@@ -23,12 +24,12 @@ export class ParameterLimitsService {
 	}
 
 	async findByTypeParam(idTypeParam: number): Promise<parameterLimitsEntity[]> {
-		return this.repository.findBy({ idTypeParam });
+		return this.repository.findBy({ idTypeParam: { id: idTypeParam } });
 	}
 
 	async create(data: CreateParameterLimitsInput): Promise<parameterLimitsEntity> {
 		const parameterLimits = this.repository.create({
-			idTypeParam: data.idTypeParam,
+			idTypeParam: { id: data.idTypeParam } as parameterTypeEntity,
 			minExpected: data.minExpected,
 			maxExpected: data.maxExpected,
 		});
@@ -43,7 +44,15 @@ export class ParameterLimitsService {
 			return null;
 		}
 
-		Object.assign(parameterLimits, data);
+		const valuesToUpdate: Partial<parameterLimitsEntity> = {
+			...(data.minExpected === undefined ? {} : { minExpected: data.minExpected }),
+			...(data.maxExpected === undefined ? {} : { maxExpected: data.maxExpected }),
+			...(data.idTypeParam === undefined
+				? {}
+				: { idTypeParam: { id: data.idTypeParam } as parameterTypeEntity }),
+		};
+
+		Object.assign(parameterLimits, valuesToUpdate);
 		return this.repository.save(parameterLimits);
 	}
 
