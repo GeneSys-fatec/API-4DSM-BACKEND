@@ -78,7 +78,7 @@ export class CreateStationsTable1762860000000 implements MigrationInterface {
                         default: "CURRENT_TIMESTAMP",
                     },
                 ],
-            })
+            }),
         );
     }
 
