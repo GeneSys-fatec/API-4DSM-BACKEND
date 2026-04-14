@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { parameterTypeService } from "../services/parameterTypeService.js";
+import { parseOptionalDate } from "../utils/filterParser.js";
 
 interface ParameterTypeParams {
     id: string;
@@ -14,9 +15,21 @@ interface CreateParameterTypeBody {
     description?: string;
 }
 
+interface ParameterTypeListQuery {
+    q?: string;
+    from?: string;
+    to?: string;
+}
+
 export class ParameterTypeController {
-    list = async (_request: FastifyRequest, reply: FastifyReply) => {
-        const parameterTypes = await parameterTypeService.findAll();
+    list = async (request: FastifyRequest<{ Querystring: ParameterTypeListQuery }>, reply: FastifyReply) => {
+        const query = request.query ?? {};
+
+        const parameterTypes = await parameterTypeService.findAll({
+            q: query.q,
+            from: parseOptionalDate(query.from),
+            to: parseOptionalDate(query.to, { endOfDay: true }),
+        });
 
         return reply.send(parameterTypes);
     };

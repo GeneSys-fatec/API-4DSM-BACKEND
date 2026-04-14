@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { parameterService } from "../services/parameterService.js";
+import { parseOptionalDate, parseOptionalNumber } from "../utils/filterParser.js";
 
 interface ParameterParams {
     id: string;
@@ -11,15 +12,38 @@ interface CreateParameterBody {
     isActive?: boolean;
 }
 
+interface ParameterListQuery {
+    q?: string;
+    idStation?: string;
+    idTypeParam?: string;
+    from?: string;
+    to?: string;
+}
+
 export class ParameterController {
-    list = async (_request: FastifyRequest, reply: FastifyReply) => {
-        const parameters = await parameterService.findAll();
+    list = async (request: FastifyRequest<{ Querystring: ParameterListQuery }>, reply: FastifyReply) => {
+        const query = request.query ?? {};
+
+        const parameters = await parameterService.findAll({
+            q: query.q,
+            idStation: parseOptionalNumber(query.idStation),
+            idTypeParam: parseOptionalNumber(query.idTypeParam),
+            from: parseOptionalDate(query.from),
+            to: parseOptionalDate(query.to, { endOfDay: true }),
+        });
         return reply.send(parameters);
     };
 
-    findByStation = async (request: FastifyRequest<{ Params: { idStation: number } }>, reply: FastifyReply) => {
+    findByStation = async (request: FastifyRequest<{ Params: { idStation: number }; Querystring: Omit<ParameterListQuery, "idStation"> }>, reply: FastifyReply) => {
         const stationId = Number(request.params.idStation);
-        return reply.send(await parameterService.findByStation(stationId));
+        const query = request.query ?? {};
+
+        return reply.send(await parameterService.findByStation(stationId, {
+            q: query.q,
+            idTypeParam: parseOptionalNumber(query.idTypeParam),
+            from: parseOptionalDate(query.from),
+            to: parseOptionalDate(query.to, { endOfDay: true }),
+        }));
     }
 
     findById = async (request: FastifyRequest<{ Params: ParameterParams }>, reply: FastifyReply) => {

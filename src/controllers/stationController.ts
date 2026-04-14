@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { stationService } from "../services/stationService.js";
+import { parseOptionalBoolean, parseOptionalDate } from "../utils/filterParser.js";
 
 interface StationParams {
 	id: string;
@@ -15,9 +16,29 @@ interface CreateStationBody {
 	isActive?: boolean;
 }
 
+interface StationListQuery {
+	q?: string;
+	status?: string;
+	isActive?: string;
+	user?: string;
+	idDatalogger?: string;
+	from?: string;
+	to?: string;
+}
+
 export class StationController {
-	list = async (_request: FastifyRequest, reply: FastifyReply) => {
-		const stations = await stationService.findAll();
+	list = async (request: FastifyRequest<{ Querystring: StationListQuery }>, reply: FastifyReply) => {
+		const query = request.query ?? {};
+
+		const stations = await stationService.findAll({
+			q: query.q,
+			status: query.status,
+			isActive: parseOptionalBoolean(query.isActive),
+			user: query.user,
+			idDatalogger: query.idDatalogger,
+			from: parseOptionalDate(query.from),
+			to: parseOptionalDate(query.to, { endOfDay: true }),
+		});
 
 		return reply.send(stations);
 	};

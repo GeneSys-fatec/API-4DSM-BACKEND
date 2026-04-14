@@ -1,5 +1,13 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { AdministratorService } from "../services/administratorService.js";
+import { parseOptionalBoolean, parseOptionalDate } from "../utils/filterParser.js";
+
+interface AdministratorListQuery {
+    q?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+}
 
 export class AdministratorController {
     async create(request: FastifyRequest, reply: FastifyReply) {
@@ -13,9 +21,16 @@ export class AdministratorController {
         }
     }
 
-    async list(request: FastifyRequest, reply: FastifyReply) {
+    async list(request: FastifyRequest<{ Querystring: AdministratorListQuery }>, reply: FastifyReply) {
+        const query = request.query ?? {};
+
         const administratorService = new AdministratorService()
-        const administrators = await administratorService.list()
+        const administrators = await administratorService.list({
+            q: query.q,
+            status: parseOptionalBoolean(query.status),
+            from: parseOptionalDate(query.from),
+            to: parseOptionalDate(query.to, { endOfDay: true }),
+        })
         reply.send(administrators)
     }
 

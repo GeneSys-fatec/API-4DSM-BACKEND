@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AlertLogEntity } from "../entities/alertLogEntity.js";
 import { alertService } from "../services/alertService.js";
+import { parseOptionalDate, parseOptionalNumber } from "../utils/filterParser.js";
 
 interface AlertParams {
     id: string;
@@ -19,6 +20,17 @@ interface EvaluateBody {
     occurredAt: string;
 }
 
+interface AlertListQuery {
+    q?: string;
+    stationId?: string;
+    parameterId?: string;
+    idTypeParam?: string;
+    status?: "active" | "resolved";
+    user?: string;
+    from?: string;
+    to?: string;
+}
+
 function mapAlertResponse(alert: AlertLogEntity) {
     return {
         id: alert.id,
@@ -32,8 +44,19 @@ function mapAlertResponse(alert: AlertLogEntity) {
 }
 
 export class AlertController {
-    list = async (_request: FastifyRequest, reply: FastifyReply) => {
-        const alerts = await alertService.listAlerts();
+    list = async (request: FastifyRequest<{ Querystring: AlertListQuery }>, reply: FastifyReply) => {
+        const query = request.query ?? {};
+
+        const alerts = await alertService.listAlerts({
+            q: query.q,
+            stationId: parseOptionalNumber(query.stationId),
+            parameterId: parseOptionalNumber(query.parameterId),
+            idTypeParam: parseOptionalNumber(query.idTypeParam),
+            status: query.status,
+            user: query.user,
+            from: parseOptionalDate(query.from),
+            to: parseOptionalDate(query.to, { endOfDay: true }),
+        });
         return reply.send(alerts.map(mapAlertResponse));
     };
 

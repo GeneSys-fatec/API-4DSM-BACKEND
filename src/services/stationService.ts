@@ -1,5 +1,6 @@
 import { AppDataSource } from "../data-source.js";
 import { StationEntity } from "../entities/stationEntity.js";
+import { Brackets } from "typeorm";
 
 export interface CreateStationInput {
 	name: string;
@@ -11,15 +12,97 @@ export interface CreateStationInput {
 	isActive?: boolean;
 }
 
+export interface StationListFilters {
+	q?: string;
+	status?: string;
+	isActive?: boolean;
+	user?: string;
+	idDatalogger?: string;
+	from?: Date;
+	to?: Date;
+}
+
 export class StationService {
 	private readonly repository = AppDataSource.getRepository(StationEntity);
 
-	async findAll(): Promise<StationEntity[]> {
-		return this.repository.find({
-			order: {
-				id: "ASC",
-			},
-		});
+	async findAll(filters: StationListFilters = {}): Promise<StationEntity[]> {
+		const hasFilters = Boolean(
+			filters.q ||
+			filters.status ||
+			filters.user ||
+			filters.idDatalogger ||
+			filters.from ||
+			filters.to ||
+			filters.isActive !== undefined,
+		);
+
+		if (!hasFilters) {
+			return this.repository.find({
+				order: {
+					id: "ASC",
+				},
+			});
+		}
+
+		const queryBuilder = this.repository
+			.createQueryBuilder("station")
+			.orderBy("station.id", "ASC");
+
+		if (filters.q) {
+			const term = `%${filters.q.trim().toLowerCase()}%`;
+			queryBuilder.andWhere(
+				new Brackets((qb) => {
+					qb.where("LOWER(station.name) LIKE :term", { term })
+						.orWhere("LOWER(station.address) LIKE :term", { term })
+						.orWhere("LOWER(station.idDatalogger) LIKE :term", { term })
+						.orWhere("CAST(station.id AS TEXT) LIKE :term", { term });
+				}),
+			);
+		}
+
+		if (filters.status) {
+			queryBuilder.andWhere("LOWER(station.status) = :status", {
+				status: filters.status.trim().toLowerCase(),
+			});
+		}
+
+		if (filters.isActive !== undefined) {
+			queryBuilder.andWhere("station.isActive = :isActive", {
+				isActive: filters.isActive,
+			});
+		}
+
+		if (filters.idDatalogger) {
+			queryBuilder.andWhere("LOWER(station.idDatalogger) LIKE :idDatalogger", {
+				idDatalogger: `%${filters.idDatalogger.trim().toLowerCase()}%`,
+			});
+		}
+
+		if (filters.user) {
+			const userTerm = `%${filters.user.trim().toLowerCase()}%`;
+			queryBuilder.andWhere(
+				new Brackets((qb) => {
+					qb.where("LOWER(station.createdBy) LIKE :userTerm", { userTerm }).orWhere(
+						"LOWER(station.updatedBy) LIKE :userTerm",
+						{ userTerm },
+					);
+				}),
+			);
+		}
+
+		if (filters.from) {
+			queryBuilder.andWhere("station.createdAt >= :from", {
+				from: filters.from,
+			});
+		}
+
+		if (filters.to) {
+			queryBuilder.andWhere("station.createdAt <= :to", {
+				to: filters.to,
+			});
+		}
+
+		return queryBuilder.getMany();
 	}
 
 	async findByName(name: string): Promise<StationEntity | null> {
@@ -69,7 +152,6 @@ export class StationService {
 		await this.repository.remove(station);
 		return true;
 	}
-
 }
 
 export const stationService = new StationService();

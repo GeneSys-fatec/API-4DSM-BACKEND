@@ -1,5 +1,6 @@
 import { AppDataSource } from "../data-source.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
+import { Brackets } from "typeorm";
 
 export interface CreateParameterTypeInput {
 	json_key: string;
@@ -10,15 +11,55 @@ export interface CreateParameterTypeInput {
 	description: string;
 }
 
+export interface ParameterTypeListFilters {
+	q?: string;
+	from?: Date;
+	to?: Date;
+}
+
 export class ParameterTypeService {
 	private readonly repository = AppDataSource.getRepository(parameterTypeEntity);
 
-	async findAll(): Promise<parameterTypeEntity[]> {
-		return this.repository.find({
-			order: {
-				id: "ASC",
-			},
-		});
+	async findAll(filters: ParameterTypeListFilters = {}): Promise<parameterTypeEntity[]> {
+		const hasFilters = Boolean(filters.q || filters.from || filters.to);
+
+		if (!hasFilters) {
+			return this.repository.find({
+				order: {
+					id: "ASC",
+				},
+			});
+		}
+
+		const queryBuilder = this.repository
+			.createQueryBuilder("parameterType")
+			.orderBy("parameterType.id", "ASC");
+
+		if (filters.q) {
+			const term = `%${filters.q.trim().toLowerCase()}%`;
+			queryBuilder.andWhere(
+				new Brackets((qb) => {
+					qb.where("LOWER(parameterType.name) LIKE :term", { term })
+						.orWhere("LOWER(parameterType.json_key) LIKE :term", { term })
+						.orWhere("LOWER(parameterType.unit) LIKE :term", { term })
+						.orWhere("LOWER(parameterType.description) LIKE :term", { term });
+				}),
+			);
+		}
+
+		if (filters.from) {
+			queryBuilder.andWhere("parameterType.createdAt >= :from", {
+				from: filters.from,
+			});
+		}
+
+		if (filters.to) {
+			queryBuilder.andWhere("parameterType.createdAt <= :to", {
+				to: filters.to,
+			});
+		}
+
+		return queryBuilder.getMany();
 	}
 
 	async findById(id: number): Promise<parameterTypeEntity | null> {

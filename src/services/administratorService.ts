@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { administratorRepository } from "../repositories/administratorRepository.js";
+import { Brackets } from "typeorm";
 
 export default interface CreateAdministratorProps {
     name: string,
@@ -16,6 +17,13 @@ interface UpdateAdministratorProps {
 
 interface DeleteAdministratorProps {
     id: number
+}
+
+export interface AdministratorListFilters {
+    q?: string;
+    status?: boolean;
+    from?: Date;
+    to?: Date;
 }
 
 export class AdministratorService {
@@ -42,9 +50,54 @@ export class AdministratorService {
         return administrator
     };
 
-    async list() {
+    async list(filters: AdministratorListFilters = {}) {
+        const hasFilters = Boolean(
+            filters.q ||
+            filters.from ||
+            filters.to ||
+            filters.status !== undefined,
+        );
 
-        const administrators = await administratorRepository.find();
+        if (!hasFilters) {
+            const administrators = await administratorRepository.find();
+
+            return administrators;
+        }
+
+        const queryBuilder = administratorRepository
+            .createQueryBuilder("administrator")
+            .orderBy("administrator.id", "ASC");
+
+        if (filters.q) {
+            const term = `%${filters.q.trim().toLowerCase()}%`;
+            queryBuilder.andWhere(
+                new Brackets((qb) => {
+                    qb.where("LOWER(administrator.name) LIKE :term", { term })
+                        .orWhere("LOWER(administrator.email) LIKE :term", { term })
+                        .orWhere("CAST(administrator.id AS TEXT) LIKE :term", { term });
+                }),
+            );
+        }
+
+        if (filters.status !== undefined) {
+            queryBuilder.andWhere("administrator.status = :status", {
+                status: filters.status,
+            });
+        }
+
+        if (filters.from) {
+            queryBuilder.andWhere("administrator.createdAt >= :from", {
+                from: filters.from,
+            });
+        }
+
+        if (filters.to) {
+            queryBuilder.andWhere("administrator.createdAt <= :to", {
+                to: filters.to,
+            });
+        }
+
+        const administrators = await queryBuilder.getMany();
 
         return administrators;
     }

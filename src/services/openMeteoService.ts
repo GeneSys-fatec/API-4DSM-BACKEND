@@ -1,6 +1,56 @@
 const weatherCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
+const SUPPORTED_OPEN_METEO_KEYS = new Set<string>([
+  "temperature_2m",
+  "relative_humidity_2m",
+  "apparent_temperature",
+  "precipitation",
+  "rain",
+  "showers",
+  "snowfall",
+  "surface_pressure",
+  "pressure_msl",
+  "cloud_cover",
+  "cloud_cover_low",
+  "cloud_cover_mid",
+  "cloud_cover_high",
+  "wind_speed_10m",
+  "wind_direction_10m",
+  "wind_gusts_10m",
+]);
+
+const OPEN_METEO_FALLBACK_KEY = "temperature_2m";
+
+export function resolveOpenMeteoKey(rawKey: string): string | null {
+  const normalized = rawKey.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (SUPPORTED_OPEN_METEO_KEYS.has(normalized)) {
+    return normalized;
+  }
+
+  if (normalized.includes("temp")) {
+    return "temperature_2m";
+  }
+  if (normalized.includes("humid") || normalized.includes("umid")) {
+    return "relative_humidity_2m";
+  }
+  if (normalized.includes("rain") || normalized.includes("chuva") || normalized.includes("precip")) {
+    return "precipitation";
+  }
+  if (normalized.includes("wind") || normalized.includes("vento")) {
+    return "wind_speed_10m";
+  }
+  if (normalized.includes("press")) {
+    return "surface_pressure";
+  }
+
+  return null;
+}
+
 export class OpenMeteoService {
   async fetchCurrentWeather(
     latitude: string,
@@ -11,7 +61,13 @@ export class OpenMeteoService {
       const lat = parseFloat(latitude);
       const lon = parseFloat(longitude);
 
-      const keysString = keys.length > 0 ? keys.join(",") : "temperature_2m";
+      const resolvedKeys = [...new Set(keys
+        .map((key) => resolveOpenMeteoKey(key))
+        .filter((key): key is string => Boolean(key)))];
+
+      const keysString = resolvedKeys.length > 0
+        ? resolvedKeys.join(",")
+        : OPEN_METEO_FALLBACK_KEY;
 
       const cacheKey = `${lat},${lon},${keysString}`;
       const now = Date.now();
