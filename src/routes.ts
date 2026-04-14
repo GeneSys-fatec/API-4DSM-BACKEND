@@ -10,7 +10,8 @@ import { administratorRoutes } from "./routes/administratorRoutes.js";
 import { stationController } from "./controllers/stationController.js";
 import { parameterController } from "./controllers/parameterController.js";
 import { parameterTypeController } from "./controllers/parameterTypeController.js";
-import weatherController from "./controllers/weatherController.js"; 
+import weatherController from "./controllers/weatherController.js
+import { alertRoutes } from "./routes/alertRoutes.js"
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
@@ -33,6 +34,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
         protectedRoutes.register(parameterRoutes, { prefix: '/parameters' })
         protectedRoutes.register(parameterTypeRoutes, { prefix: "/parameter-types" })
         protectedRoutes.register(parameterLimitsRoutes, { prefix: "/parameter-limits" })
+        protectedRoutes.register(alertRoutes, { prefix: "/alerts" })
         protectedRoutes.register(weatherRoutes, { prefix: "/weather" })
         protectedRoutes.register(administratorRoutes, {prefix: "/administrator"});
     })

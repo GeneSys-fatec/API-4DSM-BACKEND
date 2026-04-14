@@ -89,9 +89,9 @@ describe("AdministratorController", () => {
         const { AdministratorController } = await import("../../src/controllers/administratorController.js");
         const controller = new AdministratorController();
 
-        // Arrange
         const requestMock = {
-            body: { id: 1, newName: "Nome Atualizado", newEmail: "novo@email.com", newPassword: "novaSenha" },
+            params: { id: 1 },
+            body: { newName: "Nome Atualizado", newEmail: "novo@email.com", newPassword: "novaSenha" },
         } as any;
         const respostaAtualizar = { message: "Administrador atualizado com sucesso!" };
         serviceMock.update.mockResolvedValueOnce(respostaAtualizar);
@@ -108,9 +108,9 @@ describe("AdministratorController", () => {
         const { AdministratorController } = await import("../../src/controllers/administratorController.js");
         const controller = new AdministratorController();
 
-        // Arrange
         const requestMock = {
-            body: { id: 999, newName: "Nome", newEmail: "", newPassword: "" },
+            params: { id: 999 },
+            body: { newName: "Nome", newEmail: "", newPassword: "" },
         } as any;
         serviceMock.update.mockRejectedValueOnce(new Error("Administrador não encontrado para atualização."));
 
@@ -127,9 +127,8 @@ describe("AdministratorController", () => {
         const { AdministratorController } = await import("../../src/controllers/administratorController.js");
         const controller = new AdministratorController();
 
-        // Arrange
         const requestMock = {
-            body: { id: 1 },
+            params: { id: 1 },
         } as any;
         const respostaDeletar = { message: "Cliente removido!" };
         serviceMock.delete.mockResolvedValueOnce(respostaDeletar);
@@ -146,9 +145,8 @@ describe("AdministratorController", () => {
         const { AdministratorController } = await import("../../src/controllers/administratorController.js");
         const controller = new AdministratorController();
 
-        // Arrange
         const requestMock = {
-            body: { id: 999 },
+            params: { id: 999 },
         } as any;
         serviceMock.delete.mockRejectedValueOnce(new Error("Usuário não encontrado, tente novamente"));
 

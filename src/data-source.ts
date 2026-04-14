@@ -19,6 +19,9 @@ export const AppDataSource = new DataSource({
     logging: ["query", "error"],
     entities: ["src/entities/*.ts"],
     migrations: ["src/migrations/*.ts"],
+    ssl: {
+        rejectUnauthorized: false,
+    },
 });
 
 export async function initializeDatabase(): Promise<void> {
