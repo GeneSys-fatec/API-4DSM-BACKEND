@@ -122,6 +122,14 @@ export class StationController {
 		return reply.status(204).send({message: "Station deleted successfully" });
 	};
 
+	listPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
+		const stations = await stationService.findAll();
+		
+		const activeStations = stations.filter(station => station.isActive);
+		
+		return reply.send(activeStations);
+	};
+
 }
 
 export const stationController = new StationController();

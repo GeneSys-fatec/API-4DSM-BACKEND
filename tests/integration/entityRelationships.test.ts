@@ -5,14 +5,14 @@ import { parameterTypeEntity } from "../../src/entities/parameterTypeEntity";
 
 describe("Entity Relationships", () => {
     it("should have correct relationships defined on entities", () => {
-        // Test that StationEntity exists and has expected properties
+        
         const station = new StationEntity();
         station.id = 1;
         station.name = "Test Station";
         expect(station.name).toBe("Test Station");
         expect(station.id).toBe(1);
 
-        // Test that parameterTypeEntity exists and has expected properties
+        
         const paramType = new parameterTypeEntity();
         paramType.id = 1;
         paramType.json_key = "temperature_2m";
@@ -20,7 +20,7 @@ describe("Entity Relationships", () => {
         expect(paramType.json_key).toBe("temperature_2m");
         expect(paramType.name).toBe("Temperature");
 
-        // Test that ParameterEntity exists and has expected properties
+        
         const parameter = new ParameterEntity();
         parameter.id = 1;
         parameter.idStation = 1;
