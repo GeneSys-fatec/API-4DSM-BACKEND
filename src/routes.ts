@@ -7,7 +7,11 @@ import { parameterLimitsRoutes } from "./routes/parameterLimitsRoutes.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { authenticate } from "./middleware/authenticate.js";
 import { administratorRoutes } from "./routes/administratorRoutes.js";
-import { alertRoutes } from "./routes/alertRoutes.js";
+import { stationController } from "./controllers/stationController.js";
+import { parameterController } from "./controllers/parameterController.js";
+import { parameterTypeController } from "./controllers/parameterTypeController.js";
+import weatherController from "./controllers/weatherController.js";
+import { alertRoutes } from "./routes/alertRoutes.js"
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
@@ -15,6 +19,14 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     });
 
     fastify.register(authRoutes, {prefix: "/auth"});
+    
+    // --- ROTAS PÚBLICAS DE LEITURA ---
+    fastify.get('/stations/public', stationController.listPublic);
+    fastify.get('/weather/public/:stationId', weatherController.getCurrentWeather);
+    fastify.get('/parameter-types/public', parameterTypeController.list);
+    fastify.get('/parameters/public/station/:idStation', parameterController.findByStation);
+
+    // --- ROTAS PROTEGIDAS (Admin) ---
     fastify.register(async (protectedRoutes) => {
         protectedRoutes.addHook("preHandler", authenticate)
     
@@ -26,5 +38,4 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
         protectedRoutes.register(weatherRoutes, { prefix: "/weather" })
         protectedRoutes.register(administratorRoutes, {prefix: "/administrator"});
     })
-    
 }

@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import * as dotenv from "dotenv";
 import { seedParameterTypes } from "./seeds/parameterTypeSeed.js";
 import { seedAdministrator } from "./seeds/administratorSeed.js";
+import { seedStations } from "./seeds/stationSeed.js"; 
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ export async function initializeDatabase(): Promise<void> {
 
     try {
         await seedParameterTypes();
+        await seedStations(); 
         await seedAdministrator();
         console.log("Seeds executados com sucesso!");
     } catch (seedError) {
