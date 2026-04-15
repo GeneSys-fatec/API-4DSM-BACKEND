@@ -10,7 +10,7 @@ import { administratorRoutes } from "./routes/administratorRoutes.js";
 import { stationController } from "./controllers/stationController.js";
 import { parameterController } from "./controllers/parameterController.js";
 import { parameterTypeController } from "./controllers/parameterTypeController.js";
-import weatherController from "./controllers/weatherController.js
+import weatherController from "./controllers/weatherController.js";
 import { alertRoutes } from "./routes/alertRoutes.js"
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
