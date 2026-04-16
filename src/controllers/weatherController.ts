@@ -22,11 +22,30 @@ function mapAlertResponse(alert: AlertLogEntity) {
 
 export class WeatherController {
   async getCurrentWeather(
-    req: FastifyRequest<{ Params: { stationId: string } }>,
+    req: FastifyRequest<{
+      Params: { stationId: string };
+      Querystring: { from?: string; to?: string };
+    }>,
     reply: FastifyReply,
   ) {
     try {
       const { stationId } = req.params;
+      const query = req.query ?? {};
+
+      const from = typeof query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(query.from)
+        ? query.from
+        : undefined;
+      const to = typeof query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(query.to)
+        ? query.to
+        : undefined;
+
+      if ((from && !to) || (!from && to)) {
+        return reply.status(400).send({ message: "Informe from e to juntos para período personalizado." });
+      }
+
+      if (from && to && from > to) {
+        return reply.status(400).send({ message: "Período inválido: from deve ser menor ou igual a to." });
+      }
 
       const stationRepository = AppDataSource.getRepository(StationEntity);
       const station = await stationRepository.findOneBy({
@@ -71,11 +90,18 @@ export class WeatherController {
 
       const jsonKeys = [...new Set(stationParameterDetails.map((item) => item.resolvedJsonKey))];
 
-      const weatherData = await openMeteoService.fetchCurrentWeather(
-        station.latitude.toString(),
-        station.longitude.toString(),
-        jsonKeys
-      );
+      const weatherData = from && to
+        ? await openMeteoService.fetchCurrentWeather(
+            station.latitude.toString(),
+            station.longitude.toString(),
+            jsonKeys,
+            { from, to },
+          )
+        : await openMeteoService.fetchCurrentWeather(
+            station.latitude.toString(),
+            station.longitude.toString(),
+            jsonKeys,
+          );
 
       const currentData = { ...(weatherData.current ?? {}) } as Record<string, unknown>;
       const hourlyData = { ...(weatherData.hourly ?? {}) } as Record<string, unknown>;

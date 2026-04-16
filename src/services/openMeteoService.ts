@@ -22,6 +22,15 @@ const SUPPORTED_OPEN_METEO_KEYS = new Set<string>([
 
 const OPEN_METEO_FALLBACK_KEY = "temperature_2m";
 
+interface WeatherRangeOptions {
+  from?: string;
+  to?: string;
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 export function resolveOpenMeteoKey(rawKey: string): string | null {
   const normalized = rawKey.trim().toLowerCase();
   if (!normalized) {
@@ -56,6 +65,7 @@ export class OpenMeteoService {
     latitude: string,
     longitude: string,
     keys: string[],
+    range?: WeatherRangeOptions,
   ) {
     try {
       const lat = parseFloat(latitude);
@@ -69,7 +79,19 @@ export class OpenMeteoService {
         ? resolvedKeys.join(",")
         : OPEN_METEO_FALLBACK_KEY;
 
-      const cacheKey = `${lat},${lon},${keysString}`;
+      const hasCustomRange = Boolean(
+        range?.from &&
+        range?.to &&
+        isIsoDate(range.from) &&
+        isIsoDate(range.to) &&
+        range.from <= range.to,
+      );
+
+      const normalizedRange = hasCustomRange
+        ? { from: range!.from!, to: range!.to! }
+        : null;
+
+      const cacheKey = `${lat},${lon},${keysString},${normalizedRange?.from ?? ""},${normalizedRange?.to ?? ""}`;
       const now = Date.now();
 
       if (weatherCache.has(cacheKey)) {
@@ -85,15 +107,34 @@ export class OpenMeteoService {
       console.log(
         `[API] Buscando dados novos no Open-Meteo para ${lat}, ${lon}...`,
       );
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${keysString}&hourly=${keysString}&past_days=30`;
+      const defaultUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${keysString}&hourly=${keysString}&past_days=30`;
+      const customRangeUrl = normalizedRange
+        ? `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${keysString}&hourly=${keysString}&start_date=${normalizedRange.from}&end_date=${normalizedRange.to}`
+        : null;
 
-      const response = await fetch(url);
+      let data: any;
 
-      if (!response.ok) {
-        throw new Error(`Erro na API Open-Meteo: ${response.statusText}`);
+      if (customRangeUrl) {
+        const customRangeResponse = await fetch(customRangeUrl);
+
+        if (customRangeResponse.ok) {
+          data = await customRangeResponse.json();
+        } else {
+          console.warn(
+            `[API] Faixa personalizada não suportada (${normalizedRange.from} até ${normalizedRange.to}). Aplicando fallback para últimos 30 dias.`,
+          );
+        }
       }
 
-      const data = await response.json();
+      if (!data) {
+        const fallbackResponse = await fetch(defaultUrl);
+
+        if (!fallbackResponse.ok) {
+          throw new Error(`Erro na API Open-Meteo: ${fallbackResponse.statusText}`);
+        }
+
+        data = await fallbackResponse.json();
+      }
 
       const result = {
         current: data.current,
