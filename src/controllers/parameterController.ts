@@ -23,13 +23,17 @@ interface ParameterListQuery {
 export class ParameterController {
     list = async (request: FastifyRequest<{ Querystring: ParameterListQuery }>, reply: FastifyReply) => {
         const query = request.query ?? {};
+        const idStation = parseOptionalNumber(query.idStation);
+        const idTypeParam = parseOptionalNumber(query.idTypeParam);
+        const from = parseOptionalDate(query.from);
+        const to = parseOptionalDate(query.to, { endOfDay: true });
 
         const parameters = await parameterService.findAll({
-            q: query.q,
-            idStation: parseOptionalNumber(query.idStation),
-            idTypeParam: parseOptionalNumber(query.idTypeParam),
-            from: parseOptionalDate(query.from),
-            to: parseOptionalDate(query.to, { endOfDay: true }),
+            ...(query.q !== undefined ? { q: query.q } : {}),
+            ...(idStation !== undefined ? { idStation } : {}),
+            ...(idTypeParam !== undefined ? { idTypeParam } : {}),
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
         });
         return reply.send(parameters);
     };
@@ -37,12 +41,15 @@ export class ParameterController {
     findByStation = async (request: FastifyRequest<{ Params: { idStation: number }; Querystring: Omit<ParameterListQuery, "idStation"> }>, reply: FastifyReply) => {
         const stationId = Number(request.params.idStation);
         const query = request.query ?? {};
+        const idTypeParam = parseOptionalNumber(query.idTypeParam);
+        const from = parseOptionalDate(query.from);
+        const to = parseOptionalDate(query.to, { endOfDay: true });
 
         return reply.send(await parameterService.findByStation(stationId, {
-            q: query.q,
-            idTypeParam: parseOptionalNumber(query.idTypeParam),
-            from: parseOptionalDate(query.from),
-            to: parseOptionalDate(query.to, { endOfDay: true }),
+            ...(query.q !== undefined ? { q: query.q } : {}),
+            ...(idTypeParam !== undefined ? { idTypeParam } : {}),
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
         }));
     }
 

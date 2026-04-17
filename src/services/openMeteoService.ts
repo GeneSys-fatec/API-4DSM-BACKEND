@@ -114,7 +114,7 @@ export class OpenMeteoService {
 
       let data: any;
 
-      if (customRangeUrl) {
+      if (customRangeUrl && normalizedRange) {
         const customRangeResponse = await fetch(customRangeUrl);
 
         if (customRangeResponse.ok) {

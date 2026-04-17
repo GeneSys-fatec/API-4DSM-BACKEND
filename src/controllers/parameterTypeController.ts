@@ -24,11 +24,13 @@ interface ParameterTypeListQuery {
 export class ParameterTypeController {
     list = async (request: FastifyRequest<{ Querystring: ParameterTypeListQuery }>, reply: FastifyReply) => {
         const query = request.query ?? {};
+        const from = parseOptionalDate(query.from);
+        const to = parseOptionalDate(query.to, { endOfDay: true });
 
         const parameterTypes = await parameterTypeService.findAll({
-            q: query.q,
-            from: parseOptionalDate(query.from),
-            to: parseOptionalDate(query.to, { endOfDay: true }),
+            ...(query.q !== undefined ? { q: query.q } : {}),
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
         });
 
         return reply.send(parameterTypes);

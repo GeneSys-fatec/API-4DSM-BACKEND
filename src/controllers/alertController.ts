@@ -46,16 +46,21 @@ function mapAlertResponse(alert: AlertLogEntity) {
 export class AlertController {
     list = async (request: FastifyRequest<{ Querystring: AlertListQuery }>, reply: FastifyReply) => {
         const query = request.query ?? {};
+        const stationId = parseOptionalNumber(query.stationId);
+        const parameterId = parseOptionalNumber(query.parameterId);
+        const idTypeParam = parseOptionalNumber(query.idTypeParam);
+        const from = parseOptionalDate(query.from);
+        const to = parseOptionalDate(query.to, { endOfDay: true });
 
         const alerts = await alertService.listAlerts({
-            q: query.q,
-            stationId: parseOptionalNumber(query.stationId),
-            parameterId: parseOptionalNumber(query.parameterId),
-            idTypeParam: parseOptionalNumber(query.idTypeParam),
-            status: query.status,
-            user: query.user,
-            from: parseOptionalDate(query.from),
-            to: parseOptionalDate(query.to, { endOfDay: true }),
+            ...(query.q !== undefined ? { q: query.q } : {}),
+            ...(stationId !== undefined ? { stationId } : {}),
+            ...(parameterId !== undefined ? { parameterId } : {}),
+            ...(idTypeParam !== undefined ? { idTypeParam } : {}),
+            ...(query.status !== undefined ? { status: query.status } : {}),
+            ...(query.user !== undefined ? { user: query.user } : {}),
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
         });
         return reply.send(alerts.map(mapAlertResponse));
     };

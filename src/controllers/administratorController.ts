@@ -23,13 +23,16 @@ export class AdministratorController {
 
     async list(request: FastifyRequest<{ Querystring: AdministratorListQuery }>, reply: FastifyReply) {
         const query = request.query ?? {};
+        const status = parseOptionalBoolean(query.status);
+        const from = parseOptionalDate(query.from);
+        const to = parseOptionalDate(query.to, { endOfDay: true });
 
         const administratorService = new AdministratorService()
         const administrators = await administratorService.list({
-            q: query.q,
-            status: parseOptionalBoolean(query.status),
-            from: parseOptionalDate(query.from),
-            to: parseOptionalDate(query.to, { endOfDay: true }),
+            ...(query.q !== undefined ? { q: query.q } : {}),
+            ...(status !== undefined ? { status } : {}),
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
         })
         reply.send(administrators)
     }

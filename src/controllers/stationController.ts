@@ -29,15 +29,18 @@ interface StationListQuery {
 export class StationController {
 	list = async (request: FastifyRequest<{ Querystring: StationListQuery }>, reply: FastifyReply) => {
 		const query = request.query ?? {};
+		const isActive = parseOptionalBoolean(query.isActive);
+		const from = parseOptionalDate(query.from);
+		const to = parseOptionalDate(query.to, { endOfDay: true });
 
 		const stations = await stationService.findAll({
-			q: query.q,
-			status: query.status,
-			isActive: parseOptionalBoolean(query.isActive),
-			user: query.user,
-			idDatalogger: query.idDatalogger,
-			from: parseOptionalDate(query.from),
-			to: parseOptionalDate(query.to, { endOfDay: true }),
+			...(query.q !== undefined ? { q: query.q } : {}),
+			...(query.status !== undefined ? { status: query.status } : {}),
+			...(isActive !== undefined ? { isActive } : {}),
+			...(query.user !== undefined ? { user: query.user } : {}),
+			...(query.idDatalogger !== undefined ? { idDatalogger: query.idDatalogger } : {}),
+			...(from !== undefined ? { from } : {}),
+			...(to !== undefined ? { to } : {}),
 		});
 
 		return reply.send(stations);
