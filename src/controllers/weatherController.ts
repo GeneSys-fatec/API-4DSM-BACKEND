@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import openMeteoService from "../services/openMeteoService.js";
+import { resolveOpenMeteoKey } from "../services/openMeteoService.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { AppDataSource } from "../data-source.js";
 import { parameterService } from "../services/parameterService.js";
@@ -21,11 +22,30 @@ function mapAlertResponse(alert: AlertLogEntity) {
 
 export class WeatherController {
   async getCurrentWeather(
-    req: FastifyRequest<{ Params: { stationId: string } }>,
+    req: FastifyRequest<{
+      Params: { stationId: string };
+      Querystring: { from?: string; to?: string };
+    }>,
     reply: FastifyReply,
   ) {
     try {
       const { stationId } = req.params;
+      const query = req.query ?? {};
+
+      const from = typeof query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(query.from)
+        ? query.from
+        : undefined;
+      const to = typeof query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(query.to)
+        ? query.to
+        : undefined;
+
+      if ((from && !to) || (!from && to)) {
+        return reply.status(400).send({ message: "Informe from e to juntos para período personalizado." });
+      }
+
+      if (from && to && from > to) {
+        return reply.status(400).send({ message: "Período inválido: from deve ser menor ou igual a to." });
+      }
 
       const stationRepository = AppDataSource.getRepository(StationEntity);
       const station = await stationRepository.findOneBy({
@@ -45,14 +65,21 @@ export class WeatherController {
       const stationParameterDetails: Array<{
         parameterId: number;
         jsonKey: string;
+        resolvedJsonKey: string;
       }> = [];
 
       for (const param of stationParameters) {
           const type = await parameterTypeService.findById(param.idTypeParam);
           if (type && type.json_key) {
+              const resolvedJsonKey = resolveOpenMeteoKey(type.json_key);
+              if (!resolvedJsonKey) {
+                continue;
+              }
+
               stationParameterDetails.push({
                 parameterId: param.id,
                 jsonKey: type.json_key,
+                resolvedJsonKey,
               });
           }
       }
@@ -61,21 +88,50 @@ export class WeatherController {
         return reply.status(200).send({ current: {}, hourly: {} });
       }
 
-      const jsonKeys = [...new Set(stationParameterDetails.map((item) => item.jsonKey))];
+      const jsonKeys = [...new Set(stationParameterDetails.map((item) => item.resolvedJsonKey))];
 
-      const weatherData = await openMeteoService.fetchCurrentWeather(
-        station.latitude.toString(),
-        station.longitude.toString(),
-        jsonKeys
-      );
+      const weatherData = from && to
+        ? await openMeteoService.fetchCurrentWeather(
+            station.latitude.toString(),
+            station.longitude.toString(),
+            jsonKeys,
+            { from, to },
+          )
+        : await openMeteoService.fetchCurrentWeather(
+            station.latitude.toString(),
+            station.longitude.toString(),
+            jsonKeys,
+          );
 
-      const occurredAt = typeof weatherData?.current?.time === "string"
-        ? weatherData.current.time
+      const currentData = { ...(weatherData.current ?? {}) } as Record<string, unknown>;
+      const hourlyData = { ...(weatherData.hourly ?? {}) } as Record<string, unknown>;
+      const unitsData = { ...(weatherData.units ?? {}) } as Record<string, unknown>;
+
+      for (const parameter of stationParameterDetails) {
+        if (parameter.jsonKey === parameter.resolvedJsonKey) {
+          continue;
+        }
+
+        if (currentData[parameter.jsonKey] === undefined && currentData[parameter.resolvedJsonKey] !== undefined) {
+          currentData[parameter.jsonKey] = currentData[parameter.resolvedJsonKey];
+        }
+
+        if (hourlyData[parameter.jsonKey] === undefined && hourlyData[parameter.resolvedJsonKey] !== undefined) {
+          hourlyData[parameter.jsonKey] = hourlyData[parameter.resolvedJsonKey];
+        }
+
+        if (unitsData[parameter.jsonKey] === undefined && unitsData[parameter.resolvedJsonKey] !== undefined) {
+          unitsData[parameter.jsonKey] = unitsData[parameter.resolvedJsonKey];
+        }
+      }
+
+      const occurredAt = typeof currentData.time === "string"
+        ? currentData.time
         : new Date().toISOString();
 
       const generatedAlerts: AlertLogEntity[] = [];
       for (const parameter of stationParameterDetails) {
-        const measured = Number(weatherData?.current?.[parameter.jsonKey]);
+        const measured = Number(currentData[parameter.jsonKey] ?? currentData[parameter.resolvedJsonKey]);
         if (Number.isNaN(measured)) {
           continue;
         }
@@ -91,6 +147,9 @@ export class WeatherController {
 
       return reply.status(200).send({
         ...weatherData,
+        current: currentData,
+        hourly: hourlyData,
+        units: unitsData,
         generatedAlerts: generatedAlerts.map(mapAlertResponse),
         generatedCount: generatedAlerts.length,
       });

@@ -44,6 +44,32 @@ describe("OpenMeteoService", () => {
     );
   });
 
+  it("deve normalizar chave custom de temperatura para temperatura_2m", async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ current: {}, hourly: {} }),
+    });
+
+    await openMeteoService.fetchCurrentWeather("1", "1", ["temp_e2e_custom"]);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("current=temperature_2m"),
+    );
+  });
+
+  it("deve ignorar chaves inválidas e manter as válidas", async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ current: {}, hourly: {} }),
+    });
+
+    await openMeteoService.fetchCurrentWeather("0", "0", ["invalida_total", "wind_speed_10m"]);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("current=wind_speed_10m"),
+    );
+  });
+
   it("deve utilizar o cache na segunda chamada e não acionar o fetch novamente", async () => {
     const mockResponse = {
       current: { test: 123 },

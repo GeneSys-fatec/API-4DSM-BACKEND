@@ -4,6 +4,7 @@ const repositoryMock = vi.hoisted(() => ({
   find: vi.fn(),
   findOneBy: vi.fn(),
   findBy: vi.fn(),
+  createQueryBuilder: vi.fn(),
   create: vi.fn(),
   save: vi.fn(),
   remove: vi.fn(),
@@ -40,6 +41,25 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
       order: { id: "ASC" },
     });
     expect(result).toHaveLength(2);
+  });
+
+  it("Critério: Deve filtrar estações diretamente no banco quando houver filtros", async () => {
+    const { StationService } = await import("../../src/services/stationService.js");
+    const service = new StationService();
+
+    const queryBuilderMock = {
+      orderBy: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getMany: vi.fn().mockResolvedValueOnce([{ id: 1, name: "Estação Sul" }]),
+    };
+
+    repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+    const result = await service.findAll({ q: "sul", status: "ativa" });
+
+    expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("station");
+    expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
+    expect(result).toEqual([{ id: 1, name: "Estação Sul" }]);
   });
 
   it("Critério: O administrador deve conseguir cadastrar uma estação - retorna null se não encontra", async () => {

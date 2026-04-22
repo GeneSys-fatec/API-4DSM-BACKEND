@@ -23,11 +23,23 @@ const evaluateBodySchema = z.object({
     occurredAt: z.string(),
 });
 
+const alertListQuerySchema = z.object({
+    q: z.string().optional(),
+    stationId: z.string().optional(),
+    parameterId: z.string().optional(),
+    idTypeParam: z.string().optional(),
+    status: z.enum(["active", "resolved"]).optional(),
+    user: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+});
+
 export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/", {
         schema: {
             tags: ["alertas"],
             summary: "Listagem de alertas climáticos",
+            querystring: alertListQuerySchema,
         },
         handler: alertController.list,
     });

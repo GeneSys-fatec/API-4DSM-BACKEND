@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const repositoryMock = vi.hoisted(() => ({
     find: vi.fn(),
     findOne: vi.fn(),
+    createQueryBuilder: vi.fn(),
     create: vi.fn(),
     save: vi.fn(),
     update: vi.fn(),
@@ -95,6 +96,25 @@ describe("AdministratorService", () => {
         expect(repositoryMock.find).toHaveBeenCalled();
         expect(resultado).toHaveLength(2);
         expect(resultado).toEqual(administradoresMock);
+    });
+
+    it("deve aplicar filtros na listagem de administradores", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([{ id: 3, name: "Filtrado" }]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const resultado = await service.list({ q: "fil", status: true });
+
+        expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("administrator");
+        expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
+        expect(resultado).toEqual([{ id: 3, name: "Filtrado" }]);
     });
 
     // UPDATE

@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const repositoryMock = vi.hoisted(() => ({
   find: vi.fn(),
   findOneBy: vi.fn(),
+  createQueryBuilder: vi.fn(),
   create: vi.fn(),
   save: vi.fn(),
 }));
@@ -67,5 +68,25 @@ describe("ParameterService - Suporte a Parâmetros Meteorológicos", () => {
     });
     expect(repositoryMock.save).toHaveBeenCalledWith(createdEntity);
     expect(result).toEqual({ id: 1, saved: true });
+  });
+
+  it("deve buscar parâmetros por estação aplicando filtros no banco", async () => {
+    const { ParameterService } = await import("../../src/services/parameterService.js");
+    const service = new ParameterService();
+
+    const queryBuilderMock = {
+      leftJoin: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getMany: vi.fn().mockResolvedValueOnce([{ id: 9, idStation: 1 }]),
+    };
+
+    repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+    const result = await service.findByStation(1, { q: "temp" });
+
+    expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("parameter");
+    expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
+    expect(result).toEqual([{ id: 9, idStation: 1 }]);
   });
 });
