@@ -6,6 +6,7 @@ import { parameterLimitsEntity } from "../entities/parameterLimitsEntity.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export interface CreateAlertInput {
     parameterId: number;
@@ -123,13 +124,16 @@ export class AlertService {
     }
 
     async listAlerts(filters: AlertListFilters = {}): Promise<AlertLogEntity[]> {
+        const searchTerm = normalizeSearchTerm(filters.q ?? "");
+        const userSearchTerm = normalizeSearchTerm(filters.user ?? "");
+
         const hasFilters = Boolean(
             filters.stationId ||
             filters.parameterId ||
             filters.idTypeParam ||
             filters.status ||
-            filters.user ||
-            filters.q ||
+            userSearchTerm ||
+            searchTerm ||
             filters.from ||
             filters.to,
         );
@@ -178,29 +182,29 @@ export class AlertService {
             });
         }
 
-        if (filters.user) {
-            const userTerm = `%${filters.user.trim().toLowerCase()}%`;
+        if (userSearchTerm) {
+            const userTerm = `%${userSearchTerm}%`;
             queryBuilder.andWhere(
                 new Brackets((qb) => {
-                    qb.where("LOWER(station.createdBy) LIKE :userTerm", { userTerm }).orWhere(
-                        "LOWER(station.updatedBy) LIKE :userTerm",
+                    qb.where(`${unaccentedSql("station.createdBy")} LIKE :userTerm`, { userTerm }).orWhere(
+                        `${unaccentedSql("station.updatedBy")} LIKE :userTerm`,
                         { userTerm },
                     );
                 }),
             );
         }
 
-        if (filters.q) {
-            const term = `%${filters.q.trim().toLowerCase()}%`;
+        if (searchTerm) {
+            const term = `%${searchTerm}%`;
             queryBuilder.andWhere(
                 new Brackets((qb) => {
-                    qb.where("LOWER(alert.titulo) LIKE :term", { term })
-                        .orWhere("LOWER(alert.texto) LIKE :term", { term })
+                    qb.where(`${unaccentedSql("alert.titulo")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("alert.texto")} LIKE :term`, { term })
                         .orWhere("CAST(alert.id AS TEXT) LIKE :term", { term })
                         .orWhere("CAST(parameter.id AS TEXT) LIKE :term", { term })
-                        .orWhere("LOWER(parameterType.name) LIKE :term", { term })
-                        .orWhere("LOWER(parameterType.json_key) LIKE :term", { term })
-                        .orWhere("LOWER(station.name) LIKE :term", { term });
+                        .orWhere(`${unaccentedSql("parameterType.name")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("parameterType.json_key")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("station.name")} LIKE :term`, { term });
                 }),
             );
         }

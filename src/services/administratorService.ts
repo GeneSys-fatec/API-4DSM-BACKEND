@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { administratorRepository } from "../repositories/administratorRepository.js";
 import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export default interface CreateAdministratorProps {
     name: string,
@@ -51,8 +52,10 @@ export class AdministratorService {
     };
 
     async list(filters: AdministratorListFilters = {}) {
+        const searchTerm = normalizeSearchTerm(filters.q ?? "");
+
         const hasFilters = Boolean(
-            filters.q ||
+            searchTerm ||
             filters.from ||
             filters.to ||
             filters.status !== undefined,
@@ -68,12 +71,12 @@ export class AdministratorService {
             .createQueryBuilder("administrator")
             .orderBy("administrator.id", "ASC");
 
-        if (filters.q) {
-            const term = `%${filters.q.trim().toLowerCase()}%`;
+        if (searchTerm) {
+            const term = `%${searchTerm}%`;
             queryBuilder.andWhere(
                 new Brackets((qb) => {
-                    qb.where("LOWER(administrator.name) LIKE :term", { term })
-                        .orWhere("LOWER(administrator.email) LIKE :term", { term })
+                    qb.where(`${unaccentedSql("administrator.name")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("administrator.email")} LIKE :term`, { term })
                         .orWhere("CAST(administrator.id AS TEXT) LIKE :term", { term });
                 }),
             );

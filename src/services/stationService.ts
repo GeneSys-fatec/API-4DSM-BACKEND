@@ -1,6 +1,7 @@
 import { AppDataSource } from "../data-source.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export interface CreateStationInput {
 	name: string;
@@ -26,11 +27,16 @@ export class StationService {
 	private readonly repository = AppDataSource.getRepository(StationEntity);
 
 	async findAll(filters: StationListFilters = {}): Promise<StationEntity[]> {
+		const searchTerm = normalizeSearchTerm(filters.q ?? "");
+		const idDataloggerTerm = normalizeSearchTerm(filters.idDatalogger ?? "");
+		const userSearchTerm = normalizeSearchTerm(filters.user ?? "");
+		const normalizedStatus = filters.status?.trim().toLowerCase() ?? "";
+
 		const hasFilters = Boolean(
-			filters.q ||
-			filters.status ||
-			filters.user ||
-			filters.idDatalogger ||
+			searchTerm ||
+			normalizedStatus ||
+			userSearchTerm ||
+			idDataloggerTerm ||
 			filters.from ||
 			filters.to ||
 			filters.isActive !== undefined,
@@ -48,21 +54,21 @@ export class StationService {
 			.createQueryBuilder("station")
 			.orderBy("station.id", "ASC");
 
-		if (filters.q) {
-			const term = `%${filters.q.trim().toLowerCase()}%`;
+		if (searchTerm) {
+			const term = `%${searchTerm}%`;
 			queryBuilder.andWhere(
 				new Brackets((qb) => {
-					qb.where("LOWER(station.name) LIKE :term", { term })
-						.orWhere("LOWER(station.address) LIKE :term", { term })
-						.orWhere("LOWER(station.idDatalogger) LIKE :term", { term })
+					qb.where(`${unaccentedSql("station.name")} LIKE :term`, { term })
+						.orWhere(`${unaccentedSql("station.address")} LIKE :term`, { term })
+						.orWhere(`${unaccentedSql("station.idDatalogger")} LIKE :term`, { term })
 						.orWhere("CAST(station.id AS TEXT) LIKE :term", { term });
 				}),
 			);
 		}
 
-		if (filters.status) {
+		if (normalizedStatus) {
 			queryBuilder.andWhere("LOWER(station.status) = :status", {
-				status: filters.status.trim().toLowerCase(),
+				status: normalizedStatus,
 			});
 		}
 
@@ -72,18 +78,18 @@ export class StationService {
 			});
 		}
 
-		if (filters.idDatalogger) {
-			queryBuilder.andWhere("LOWER(station.idDatalogger) LIKE :idDatalogger", {
-				idDatalogger: `%${filters.idDatalogger.trim().toLowerCase()}%`,
+		if (idDataloggerTerm) {
+			queryBuilder.andWhere(`${unaccentedSql("station.idDatalogger")} LIKE :idDatalogger`, {
+				idDatalogger: `%${idDataloggerTerm}%`,
 			});
 		}
 
-		if (filters.user) {
-			const userTerm = `%${filters.user.trim().toLowerCase()}%`;
+		if (userSearchTerm) {
+			const userTerm = `%${userSearchTerm}%`;
 			queryBuilder.andWhere(
 				new Brackets((qb) => {
-					qb.where("LOWER(station.createdBy) LIKE :userTerm", { userTerm }).orWhere(
-						"LOWER(station.updatedBy) LIKE :userTerm",
+					qb.where(`${unaccentedSql("station.createdBy")} LIKE :userTerm`, { userTerm }).orWhere(
+						`${unaccentedSql("station.updatedBy")} LIKE :userTerm`,
 						{ userTerm },
 					);
 				}),

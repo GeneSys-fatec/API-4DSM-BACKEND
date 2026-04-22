@@ -1,6 +1,7 @@
 import { AppDataSource } from "../data-source.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export interface CreateParameterTypeInput {
 	json_key: string;
@@ -21,7 +22,8 @@ export class ParameterTypeService {
 	private readonly repository = AppDataSource.getRepository(parameterTypeEntity);
 
 	async findAll(filters: ParameterTypeListFilters = {}): Promise<parameterTypeEntity[]> {
-		const hasFilters = Boolean(filters.q || filters.from || filters.to);
+		const searchTerm = filters.q?.trim().toLowerCase() ?? "";
+		const hasFilters = Boolean(searchTerm || filters.from || filters.to);
 
 		if (!hasFilters) {
 			return this.repository.find({
@@ -35,14 +37,13 @@ export class ParameterTypeService {
 			.createQueryBuilder("parameterType")
 			.orderBy("parameterType.id", "ASC");
 
-		if (filters.q) {
-			const term = `%${filters.q.trim().toLowerCase()}%`;
+		if (searchTerm) {
+			const normalizedTerm = `%${normalizeSearchTerm(searchTerm)}%`;
 			queryBuilder.andWhere(
 				new Brackets((qb) => {
-					qb.where("LOWER(parameterType.name) LIKE :term", { term })
-						.orWhere("LOWER(parameterType.json_key) LIKE :term", { term })
-						.orWhere("LOWER(parameterType.unit) LIKE :term", { term })
-						.orWhere("LOWER(parameterType.description) LIKE :term", { term });
+					qb.where(`${unaccentedSql("parameterType.name")} LIKE :term`, { term: normalizedTerm })
+						.orWhere(`${unaccentedSql("parameterType.json_key")} LIKE :term`, { term: normalizedTerm })
+						.orWhere(`${unaccentedSql("parameterType.unit")} LIKE :term`, { term: normalizedTerm });
 				}),
 			);
 		}

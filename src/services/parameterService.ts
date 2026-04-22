@@ -3,6 +3,7 @@ import { ParameterEntity } from "../entities/parameterEntity.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export interface CreateParameterInput {
     idStation: number;
@@ -22,10 +23,12 @@ export class ParameterService {
     private readonly repository = AppDataSource.getRepository(ParameterEntity);
 
     async findAll(filters: ParameterListFilters = {}): Promise<ParameterEntity[]> {
+        const searchTerm = normalizeSearchTerm(filters.q ?? "");
+
         const hasFilters = Boolean(
             filters.idStation ||
             filters.idTypeParam ||
-            filters.q ||
+            searchTerm ||
             filters.from ||
             filters.to,
         );
@@ -50,8 +53,8 @@ export class ParameterService {
             });
         }
 
-        if (filters.q) {
-            const term = `%${filters.q.trim().toLowerCase()}%`;
+        if (searchTerm) {
+            const term = `%${searchTerm}%`;
             queryBuilder
                 .leftJoin(StationEntity, "station", "station.id = parameter.idStation")
                 .leftJoin(parameterTypeEntity, "parameterType", "parameterType.id = parameter.idTypeParam");
@@ -61,9 +64,9 @@ export class ParameterService {
                     qb.where("CAST(parameter.id AS TEXT) LIKE :term", { term })
                         .orWhere("CAST(parameter.idStation AS TEXT) LIKE :term", { term })
                         .orWhere("CAST(parameter.idTypeParam AS TEXT) LIKE :term", { term })
-                        .orWhere("LOWER(station.name) LIKE :term", { term })
-                        .orWhere("LOWER(parameterType.name) LIKE :term", { term })
-                        .orWhere("LOWER(parameterType.json_key) LIKE :term", { term });
+                        .orWhere(`${unaccentedSql("station.name")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("parameterType.name")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("parameterType.json_key")} LIKE :term`, { term });
                 }),
             );
         }
