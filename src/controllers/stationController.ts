@@ -154,6 +154,11 @@ export class StationController {
 		return reply.send(activeStations);
 	};
 
+	listMap = async (_request: FastifyRequest, reply: FastifyReply) => {
+		const stations = await stationService.findForMap();
+		return reply.send(stations);
+	};
+
 }
 
 export const stationController = new StationController();

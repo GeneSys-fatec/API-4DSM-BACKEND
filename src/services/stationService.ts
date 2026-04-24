@@ -158,6 +158,25 @@ export class StationService {
 		await this.repository.remove(station);
 		return true;
 	}
+	async findForMap(): Promise<Pick<StationEntity, "id" | "name" | "address" | "latitude" | "longitude" | "isActive" | "idDatalogger">[]> {
+		return this.repository
+			.createQueryBuilder("station")
+			.select([
+				"station.id",
+				"station.name",
+				"station.address",
+				"station.latitude",
+				"station.longitude",
+				"station.isActive",
+				"station.idDatalogger",
+			])
+			.where("station.latitude IS NOT NULL")
+			.andWhere("station.longitude IS NOT NULL")
+			.andWhere("station.latitude != ''")
+			.andWhere("station.longitude != ''")
+			.orderBy("station.id", "ASC")
+			.getMany();
+	}
 }
 
 export const stationService = new StationService();
