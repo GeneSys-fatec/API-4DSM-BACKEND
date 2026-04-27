@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const alertRepositoryMock = vi.hoisted(() => ({
     find: vi.fn(),
     findOne: vi.fn(),
+    createQueryBuilder: vi.fn(),
     create: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),
@@ -93,6 +94,27 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         expect(alertRepositoryMock.find).toHaveBeenCalled();
         expect(result).toHaveLength(2);
+    });
+
+    it("deve aplicar filtros ao listar histórico de alertas", async () => {
+        const { AlertService } = await import("../../src/services/alertService.js");
+        const service = new AlertService();
+
+        const queryBuilderMock = {
+            leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoin: vi.fn().mockReturnThis(),
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([{ id: 33 }]),
+        };
+
+        alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const result = await service.listAlerts({ status: "active", q: "temperatura" });
+
+        expect(alertRepositoryMock.createQueryBuilder).toHaveBeenCalledWith("alert");
+        expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
+        expect(result).toEqual([{ id: 33 }]);
     });
 
     it("deve retornar null ao atualizar alerta inexistente", async () => {

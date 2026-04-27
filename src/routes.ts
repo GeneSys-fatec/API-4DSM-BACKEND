@@ -22,6 +22,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     
     // --- ROTAS PÚBLICAS DE LEITURA ---
     fastify.get('/stations/public', stationController.listPublic);
+    fastify.get('/map/stations', stationController.listMap);
     fastify.get('/weather/public/:stationId', weatherController.getCurrentWeather);
     fastify.get('/parameter-types/public', parameterTypeController.list);
     fastify.get('/parameters/public/station/:idStation', parameterController.findByStation);
