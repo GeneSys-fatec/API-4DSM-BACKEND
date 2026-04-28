@@ -6,7 +6,7 @@ import {
     PrimaryGeneratedColumn,
 } from "typeorm";
 import { MeasurementEntity } from "./measurementEntity.js";
-import { ParameterEntity } from "./parameterEntity.js";
+import { AlertRuleEntity } from "./alertRuleEntity.js";
 
 export type AlertStatus = "active" | "resolved";
 
@@ -15,9 +15,9 @@ export class AlertLogEntity {
     @PrimaryGeneratedColumn("increment", { type: "bigint" })
     id!: number;
 
-    @ManyToOne(() => ParameterEntity)
-    @JoinColumn({ name: "id_parameter" })
-    idParameter!: ParameterEntity;
+    @ManyToOne(() => AlertRuleEntity)
+    @JoinColumn({ name: "id_alert_rule" })
+    idAlertRule!: AlertRuleEntity;
 
     @ManyToOne(() => MeasurementEntity)
     @JoinColumn({ name: "id_measurement" })

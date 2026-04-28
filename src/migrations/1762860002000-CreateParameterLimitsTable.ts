@@ -1,7 +1,7 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 import { Table } from "typeorm";
 
-export class CreateParameterLimitsTable1762860003000 implements MigrationInterface {
+export class CreateParameterLimitsTable1762860002000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({

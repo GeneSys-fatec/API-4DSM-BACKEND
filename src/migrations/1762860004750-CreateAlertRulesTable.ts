@@ -1,11 +1,11 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 import { Table } from "typeorm";
 
-export class CreateParameterTypesTable1762860002000 implements MigrationInterface {
+export class CreateAlertRulesTable1762860004750 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({
-                name: "parameterTypes",
+                name: "alert_rules",
                 columns: [
                     {
                         name: "id",
@@ -15,52 +15,64 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
                         generationStrategy: "increment",
                     },
                     {
+                        name: "id_parameter",
+                        type: "integer",
+                        isNullable: false,
+                    },
+                    {
                         name: "name",
                         type: "varchar",
-                        length: "120",
+                        length: "150",
                         isNullable: false,
                     },
                     {
-                        name: "json_key",
+                        name: "operator",
                         type: "varchar",
-                        length: "50",
+                        length: "10",
                         isNullable: false,
                     },
                     {
-                        name: "unit",
+                        name: "p1",
+                        type: "decimal",
+                        precision: 10,
+                        scale: 4,
+                        isNullable: false,
+                    },
+                    {
+                        name: "p2",
+                        type: "decimal",
+                        precision: 10,
+                        scale: 4,
+                        isNullable: true,
+                    },
+                    {
+                        name: "message",
+                        type: "text",
+                        isNullable: true,
+                    },
+                    {
+                        name: "severity",
                         type: "varchar",
                         length: "20",
                         isNullable: false,
                     },
                     {
-                        name: "factor",
-                        type: "numeric",
-                        precision: 10,
-                        scale: 2,
-                        isNullable: false,
+                        name: "active",
+                        type: "boolean",
+                        default: true,
                     },
                     {
-                        name: "offset",
-                        type: "numeric",
-                        precision: 10,
-                        scale: 2,
-                        isNullable: false,
-                    },
-                    {
-                        name: "description",
-                        type: "varchar",
-                        length: "120",
-                        isNullable: true,
-                    },
-                    {
-                        name: "createdAt",
+                        name: "created_at",
                         type: "timestamp with time zone",
                         default: "CURRENT_TIMESTAMP",
                     },
+                ],
+                foreignKeys: [
                     {
-                        name: "updatedAt",
-                        type: "timestamp with time zone",
-                        default: "CURRENT_TIMESTAMP",
+                        columnNames: ["id_parameter"],
+                        referencedTableName: "parameters",
+                        referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
                     },
                 ],
             }),
@@ -68,6 +80,6 @@ export class CreateParameterTypesTable1762860002000 implements MigrationInterfac
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("parameterTypes");
+        await queryRunner.dropTable("alert_rules");
     }
 }

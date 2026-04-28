@@ -19,9 +19,9 @@ export const AppDataSource = new DataSource({
     logging: ["query", "error"],
     entities: ["src/entities/*.ts"],
     migrations: ["src/migrations/*.ts"],
-    ssl: {
-        rejectUnauthorized: false,
-    },
+    // ssl: {
+    //     rejectUnauthorized: false,
+    // },
 });
 
 export async function initializeDatabase(): Promise<void> {
@@ -30,17 +30,22 @@ export async function initializeDatabase(): Promise<void> {
     }
 
     await AppDataSource.initialize();
-    console.log("Data Source inicializado e sincronizado!");
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("Data Source inicializado!");
 
     try {
+        console.log("Executando migrations...");
+        await AppDataSource.runMigrations();
+        console.log("Migrations executadas com sucesso!");
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        console.log("Executando seeds...");
         await seedParameterTypes();
         await seedStations(); 
         await seedAdministrator();
         console.log("Seeds executados com sucesso!");
-    } catch (seedError) {
-        console.error("Erro ao executar seeds:", seedError);
-        throw seedError;
+    } catch (error) {
+        console.error("Erro ao executar migrations ou seeds:", error);
+        throw error;
     }
 }

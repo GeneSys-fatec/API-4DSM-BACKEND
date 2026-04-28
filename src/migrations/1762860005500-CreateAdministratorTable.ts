@@ -1,55 +1,52 @@
 import type { MigrationInterface, QueryRunner } from "typeorm";
 import { Table } from "typeorm";
 
-export class CreateMeasurementsTable1762860004000 implements MigrationInterface {
+export class CreateAdministratorTable1762860005500 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({
-                name: "measurements",
+                name: "administrator",
                 columns: [
                     {
                         name: "id",
-                        type: "bigint",
+                        type: "integer",
                         isPrimary: true,
                         isGenerated: true,
                         generationStrategy: "increment",
                     },
                     {
-                        name: "id_parameter",
-                        type: "integer",
+                        name: "name",
+                        type: "varchar",
+                        length: "120",
                         isNullable: false,
                     },
                     {
-                        name: "raw_value",
-                        type: "numeric",
-                        precision: 12,
-                        scale: 4,
+                        name: "email",
+                        type: "varchar",
+                        length: "120",
+                        isNullable: false,
+                        isUnique: true,
+                    },
+                    {
+                        name: "password",
+                        type: "varchar",
+                        length: "120",
                         isNullable: false,
                     },
                     {
-                        name: "value",
-                        type: "numeric",
-                        precision: 12,
-                        scale: 4,
-                        isNullable: false,
+                        name: "status",
+                        type: "boolean",
+                        default: true,
                     },
                     {
-                        name: "collected_at",
-                        type: "timestamp with time zone",
-                        isNullable: false,
-                    },
-                    {
-                        name: "received_at",
+                        name: "createdAt",
                         type: "timestamp with time zone",
                         default: "CURRENT_TIMESTAMP",
                     },
-                ],
-                foreignKeys: [
                     {
-                        columnNames: ["id_parameter"],
-                        referencedTableName: "parameters",
-                        referencedColumnNames: ["id"],
-                        onDelete: "CASCADE",
+                        name: "updatedAt",
+                        type: "timestamp with time zone",
+                        default: "CURRENT_TIMESTAMP",
                     },
                 ],
             }),
@@ -57,6 +54,6 @@ export class CreateMeasurementsTable1762860004000 implements MigrationInterface 
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("measurements");
+        await queryRunner.dropTable("administrator");
     }
 }

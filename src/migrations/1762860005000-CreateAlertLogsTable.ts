@@ -15,7 +15,7 @@ export class CreateAlertLogsTable1762860005000 implements MigrationInterface {
                         generationStrategy: "increment",
                     },
                     {
-                        name: "id_parameter",
+                        name: "id_alert_rule",
                         type: "integer",
                         isNullable: false,
                     },
@@ -62,14 +62,16 @@ export class CreateAlertLogsTable1762860005000 implements MigrationInterface {
                 ],
                 foreignKeys: [
                     {
-                        columnNames: ["id_parameter"],
-                        referencedTableName: "parameters",
+                        columnNames: ["id_alert_rule"],
+                        referencedTableName: "alert_rules",
                         referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
                     },
                     {
                         columnNames: ["id_measurement"],
                         referencedTableName: "measurements",
                         referencedColumnNames: ["id"],
+                        onDelete: "CASCADE",
                     },
                 ],
             }),
