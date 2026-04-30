@@ -1,7 +1,7 @@
 import { AppDataSource } from "../data-source.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 
-// Mapeamento EXATO baseado no db.py do Processador Python
+
 export const defaultParameterTypes = [
     { id: 1, name: "Precipitação", json_key: "chuva_mm", unit: "mm", factor: 1, offset: 0, description: "Quantidade de chuva" },
     { id: 2, name: "Umidade do Ar", json_key: "umidade", unit: "%", factor: 1, offset: 0, description: "Umidade relativa do ar" },
@@ -22,11 +22,11 @@ export async function seedParameterTypes(): Promise<void> {
         let insertedCount = 0;
 
         for (const param of defaultParameterTypes) {
-            // Verifica pela json_key
+            
             const exists = await repository.findOneBy({ json_key: param.json_key });
             
             if (!exists) {
-                // CORREÇÃO AQUI: "offset" agora está entre aspas duplas escapadas no SQL
+                
                 await repository.query(
                     `INSERT INTO "parameterTypes" (id, json_key, name, unit, factor, "offset", description) 
                      VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -38,7 +38,7 @@ export async function seedParameterTypes(): Promise<void> {
             }
         }
 
-        // Atualiza a sequência do PostgreSQL para o próximo ID disponível não dar erro
+        
         await repository.query(`SELECT setval(pg_get_serial_sequence('"parameterTypes"', 'id'), (SELECT MAX(id) FROM "parameterTypes"));`);
 
         if (insertedCount === 0) {

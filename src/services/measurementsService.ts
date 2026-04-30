@@ -63,12 +63,11 @@ export class DashboardService {
 
     async getMeasurements(filters: DashboardQueryDTO): Promise<PaginatedResponse<MeasurementEntity>> {
         const page = filters.page || 1;
-        const limit = filters.limit || 1000; // Aumentado limite padrão para os gráficos
+        const limit = filters.limit || 1000; 
         const skip = (page - 1) * limit;
 
         const qb = this.measurementRepository.createQueryBuilder("measurement")
             .leftJoinAndSelect("measurement.idParameter", "parameter")
-            // Joins manuais baseados nas colunas de inteiros para evitar falha do TypeORM
             .leftJoinAndMapOne("parameter.idStation", StationEntity, "station", "station.id = parameter.idStation")
             .leftJoinAndMapOne("parameter.idTypeParam", parameterTypeEntity, "typeParam", "typeParam.id = parameter.idTypeParam");
 

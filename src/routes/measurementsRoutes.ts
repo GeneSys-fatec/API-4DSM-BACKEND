@@ -2,7 +2,6 @@ import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { z } from "zod";
 import { measurementsController } from "../controllers/measurementsController.js";
 
-// Schema para validação dos Query Params (URL)
 const measurementsQuerySchema = z.object({
     stationId: z.coerce.number().optional().describe("ID da estação"),
     parameterId: z.coerce.number().optional().describe("ID do parâmetro"),

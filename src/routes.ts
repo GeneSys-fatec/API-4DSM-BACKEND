@@ -9,9 +9,8 @@ import { administratorRoutes } from "./routes/administratorRoutes.js";
 import { stationController } from "./controllers/stationController.js";
 import { parameterController } from "./controllers/parameterController.js";
 import { parameterTypeController } from "./controllers/parameterTypeController.js";
+import { alertController } from "./controllers/alertController.js";
 import { alertRoutes } from "./routes/alertRoutes.js";
-
-// IMPORTANDO A NOVA ROTA DE MEDIÇÕES DO DASHBOARD (Substitui o Weather)
 import { measurementsRoutes } from "./routes/measurementsRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
@@ -25,6 +24,7 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     fastify.get('/stations/public', stationController.listPublic);
     fastify.get('/parameter-types/public', parameterTypeController.list);
     fastify.get('/parameters/public/station/:idStation', parameterController.findByStation);
+    fastify.get('/alerts/public', alertController.list);
 
     fastify.register(measurementsRoutes, { prefix: "/measurements" });
 
