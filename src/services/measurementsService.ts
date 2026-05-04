@@ -1,7 +1,5 @@
 import { AppDataSource } from "../data-source.js";
 import { MeasurementEntity } from "../entities/measurementEntity.js";
-import { StationEntity } from "../entities/stationEntity.js";
-import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 
 export interface DashboardQueryDTO {
     stationId?: number;
@@ -68,8 +66,8 @@ export class DashboardService {
 
         const qb = this.measurementRepository.createQueryBuilder("measurement")
             .leftJoinAndSelect("measurement.idParameter", "parameter")
-            .leftJoinAndMapOne("parameter.idStation", StationEntity, "station", "station.id = parameter.idStation")
-            .leftJoinAndMapOne("parameter.idTypeParam", parameterTypeEntity, "typeParam", "typeParam.id = parameter.idTypeParam");
+            .leftJoinAndSelect("parameter.stationRel", "station")
+            .leftJoinAndSelect("parameter.typeParamRel", "typeParam");
 
         this.applyFilters(qb, filters);
 
@@ -91,8 +89,8 @@ export class DashboardService {
     async getAggregations(filters: DashboardQueryDTO): Promise<AggregationResponse[]> {
         const qb = this.measurementRepository.createQueryBuilder("measurement")
             .leftJoin("measurement.idParameter", "parameter")
-            .leftJoin(StationEntity, "station", "station.id = parameter.idStation")
-            .leftJoin(parameterTypeEntity, "typeParam", "typeParam.id = parameter.idTypeParam")
+            .leftJoin("parameter.stationRel", "station")
+            .leftJoin("parameter.typeParamRel", "typeParam")
             .select("parameter.id", "parameterId")
             .addSelect("typeParam.name", "parameterName")
             .addSelect("typeParam.unit", "unit")
