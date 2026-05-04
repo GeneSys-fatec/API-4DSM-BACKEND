@@ -25,11 +25,18 @@ const parameterTypeCreateBodySchema = z.object({
 
 const parameterTypeUpdateBodySchema = parameterTypeCreateBodySchema.partial();
 
+const parameterTypeListQuerySchema = z.object({
+    q: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+});
+
 export async function parameterTypeRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/", {
         schema: {
             tags: ["tipos de parâmetro"],
             summary: "Listagem de tipos de parâmetro",
+            querystring: parameterTypeListQuerySchema,
         },
         handler: parameterTypeController.list,
     });

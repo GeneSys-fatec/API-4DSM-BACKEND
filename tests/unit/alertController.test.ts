@@ -44,10 +44,32 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
             },
         ]);
 
-        await alertController.list({} as any, reply);
+        await alertController.list({ query: {} } as any, reply);
 
-        expect(alertServiceMock.listAlerts).toHaveBeenCalledOnce();
+        expect(alertServiceMock.listAlerts).toHaveBeenCalledWith({});
         expect(reply.send).toHaveBeenCalled();
+    });
+
+    it("deve passar parâmetros de filtro na listagem", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+
+        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+
+        const request = {
+            query: { stationId: "1", status: "active", from: "2026-01-01" },
+        };
+
+        await alertController.list(request as any, reply);
+
+        expect(alertServiceMock.listAlerts).toHaveBeenCalledWith(
+            expect.objectContaining({
+                stationId: 1,
+                status: "active",
+                from: expect.any(Date),
+            })
+        );
+        expect(reply.send).toHaveBeenCalledWith([]);
     });
 
     it("deve validar campos obrigatórios no cadastro", async () => {

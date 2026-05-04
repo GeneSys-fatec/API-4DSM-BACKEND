@@ -16,11 +16,22 @@ const stationBodySchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+const stationListQuerySchema = z.object({
+  q: z.string().optional(),
+  status: z.string().optional(),
+  isActive: z.string().optional(),
+  user: z.string().optional(),
+  idDatalogger: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+})
+
 export async function stationRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
   fastify.get('/', {
     schema: {
       tags: ['estações'],
       summary: 'Listagem de estações',
+      querystring: stationListQuerySchema,
     },
     handler: stationController.list,
   })

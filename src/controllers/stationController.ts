@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { stationService } from "../services/stationService.js";
+import { parseOptionalBoolean, parseOptionalDate } from "../utils/filterParser.js";
 
 interface StationParams {
 	id: string;
@@ -15,9 +16,32 @@ interface CreateStationBody {
 	isActive?: boolean;
 }
 
+interface StationListQuery {
+	q?: string;
+	status?: string;
+	isActive?: string;
+	user?: string;
+	idDatalogger?: string;
+	from?: string;
+	to?: string;
+}
+
 export class StationController {
-	list = async (_request: FastifyRequest, reply: FastifyReply) => {
-		const stations = await stationService.findAll();
+	list = async (request: FastifyRequest<{ Querystring: StationListQuery }>, reply: FastifyReply) => {
+		const query = request.query ?? {};
+		const isActive = parseOptionalBoolean(query.isActive);
+		const from = parseOptionalDate(query.from);
+		const to = parseOptionalDate(query.to, { endOfDay: true });
+
+		const stations = await stationService.findAll({
+			...(query.q !== undefined ? { q: query.q } : {}),
+			...(query.status !== undefined ? { status: query.status } : {}),
+			...(isActive !== undefined ? { isActive } : {}),
+			...(query.user !== undefined ? { user: query.user } : {}),
+			...(query.idDatalogger !== undefined ? { idDatalogger: query.idDatalogger } : {}),
+			...(from !== undefined ? { from } : {}),
+			...(to !== undefined ? { to } : {}),
+		});
 
 		return reply.send(stations);
 	};
@@ -120,6 +144,19 @@ export class StationController {
 		await stationService.delete(id);
 
 		return reply.status(204).send({message: "Station deleted successfully" });
+	};
+
+	listPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
+		const stations = await stationService.findAll();
+		
+		const activeStations = stations.filter(station => station.isActive);
+		
+		return reply.send(activeStations);
+	};
+
+	listMap = async (_request: FastifyRequest, reply: FastifyReply) => {
+		const stations = await stationService.findForMap();
+		return reply.send(stations);
 	};
 
 }
