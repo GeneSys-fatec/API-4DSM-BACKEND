@@ -18,11 +18,22 @@ const administratorUpdateSchema = z.object({
     newPassword: z.string().min(6).optional(),
 })
 
+const administratorListQuerySchema = z.object({
+    q: z.string().optional(),
+    status: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+})
+
 const administratorController = new AdministratorController();
 
 export async function administratorRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get('/', {
-        schema: { tags: ['administradores'], summary: 'Listagem de administradores' },
+        schema: {
+            tags: ['administradores'],
+            summary: 'Listagem de administradores',
+            querystring: administratorListQuerySchema,
+        },
         handler: administratorController.list.bind(administratorController),
     })
 

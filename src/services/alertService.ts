@@ -1,9 +1,12 @@
 import { AppDataSource } from "../data-source.js";
-import { AlertLogEntity } from "../entities/alertLogEntity.js";
+import { AlertLogEntity, type AlertStatus } from "../entities/alertLogEntity.js";
 import { MeasurementEntity } from "../entities/measurementEntity.js";
 import { ParameterEntity } from "../entities/parameterEntity.js";
 import { parameterLimitsEntity } from "../entities/parameterLimitsEntity.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
+import { StationEntity } from "../entities/stationEntity.js";
+import { Brackets } from "typeorm";
+import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
 
 export interface CreateAlertInput {
     parameterId: number;
@@ -24,6 +27,17 @@ export interface EvaluateMeasurementInput {
     parameterId: number;
     measuredValue: number;
     occurredAt: string;
+}
+
+export interface AlertListFilters {
+    stationId?: number;
+    parameterId?: number;
+    idTypeParam?: number;
+    status?: AlertStatus;
+    user?: string;
+    q?: string;
+    from?: Date;
+    to?: Date;
 }
 
 export class AlertService {
@@ -109,16 +123,105 @@ export class AlertService {
         return parameter;
     }
 
-    async listAlerts(): Promise<AlertLogEntity[]> {
-        return this.alertRepository.find({
-            relations: {
-                idParameter: true,
-                idMeasurement: true,
-            },
-            order: {
-                triggeredAt: "DESC",
-            },
-        });
+    async listAlerts(filters: AlertListFilters = {}): Promise<AlertLogEntity[]> {
+        const searchTerm = normalizeSearchTerm(filters.q ?? "");
+        const userSearchTerm = normalizeSearchTerm(filters.user ?? "");
+
+        const hasFilters = Boolean(
+            filters.stationId ||
+            filters.parameterId ||
+            filters.idTypeParam ||
+            filters.status ||
+            userSearchTerm ||
+            searchTerm ||
+            filters.from ||
+            filters.to,
+        );
+
+        if (!hasFilters) {
+            return this.alertRepository.find({
+                relations: {
+                    idParameter: true,
+                    idMeasurement: true,
+                },
+                order: {
+                    triggeredAt: "DESC",
+                },
+            });
+        }
+
+        const queryBuilder = this.alertRepository
+            .createQueryBuilder("alert")
+            .leftJoinAndSelect("alert.idParameter", "parameter")
+            .leftJoinAndSelect("alert.idMeasurement", "measurement")
+            .leftJoin(StationEntity, "station", "station.id = parameter.idStation")
+            .leftJoin(parameterTypeEntity, "parameterType", "parameterType.id = parameter.idTypeParam")
+            .orderBy("alert.triggeredAt", "DESC");
+
+        if (filters.stationId) {
+            queryBuilder.andWhere("parameter.idStation = :stationId", {
+                stationId: filters.stationId,
+            });
+        }
+
+        if (filters.parameterId) {
+            queryBuilder.andWhere("parameter.id = :parameterId", {
+                parameterId: filters.parameterId,
+            });
+        }
+
+        if (filters.idTypeParam) {
+            queryBuilder.andWhere("parameter.idTypeParam = :idTypeParam", {
+                idTypeParam: filters.idTypeParam,
+            });
+        }
+
+        if (filters.status) {
+            queryBuilder.andWhere("alert.status = :status", {
+                status: filters.status,
+            });
+        }
+
+        if (userSearchTerm) {
+            const userTerm = `%${userSearchTerm}%`;
+            queryBuilder.andWhere(
+                new Brackets((qb) => {
+                    qb.where(`${unaccentedSql("station.createdBy")} LIKE :userTerm`, { userTerm }).orWhere(
+                        `${unaccentedSql("station.updatedBy")} LIKE :userTerm`,
+                        { userTerm },
+                    );
+                }),
+            );
+        }
+
+        if (searchTerm) {
+            const term = `%${searchTerm}%`;
+            queryBuilder.andWhere(
+                new Brackets((qb) => {
+                    qb.where(`${unaccentedSql("alert.titulo")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("alert.texto")} LIKE :term`, { term })
+                        .orWhere("CAST(alert.id AS TEXT) LIKE :term", { term })
+                        .orWhere("CAST(parameter.id AS TEXT) LIKE :term", { term })
+                        .orWhere(`${unaccentedSql("parameterType.name")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("parameterType.json_key")} LIKE :term`, { term })
+                        .orWhere(`${unaccentedSql("station.name")} LIKE :term`, { term });
+                }),
+            );
+        }
+
+        if (filters.from) {
+            queryBuilder.andWhere("alert.triggeredAt >= :from", {
+                from: filters.from,
+            });
+        }
+
+        if (filters.to) {
+            queryBuilder.andWhere("alert.triggeredAt <= :to", {
+                to: filters.to,
+            });
+        }
+
+        return queryBuilder.getMany();
     }
 
     async findAlertById(id: number): Promise<AlertLogEntity | null> {

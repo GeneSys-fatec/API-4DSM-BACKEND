@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const serviceMock = vi.hoisted(() => ({
     create: vi.fn(),
     list: vi.fn(),
+    listById: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
 }));
@@ -82,6 +83,37 @@ describe("AdministratorController", () => {
         // Assert
         expect(serviceMock.list).toHaveBeenCalled();
         expect(replyMock.send).toHaveBeenCalledWith(listaAdministradores);
+    });
+
+    it("deve retornar administrador por id quando encontrado", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 1 },
+        } as any;
+        const administrador = { id: 1, name: "Admin", email: "admin@admin.com" };
+        serviceMock.listById.mockResolvedValueOnce(administrador);
+
+        await controller.listById(requestMock, replyMock as any);
+
+        expect(serviceMock.listById).toHaveBeenCalledWith(1);
+        expect(replyMock.send).toHaveBeenCalledWith(administrador);
+    });
+
+    it("deve retornar status 404 quando listById não encontrar administrador", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 999 },
+        } as any;
+        serviceMock.listById.mockRejectedValueOnce(new Error("Administrador não encontrado."));
+
+        await controller.listById(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(404);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Administrador não encontrado." });
     });
 
     // UPDATE

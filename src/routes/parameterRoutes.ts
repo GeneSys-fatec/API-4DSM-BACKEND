@@ -12,11 +12,27 @@ const parameterBodySchema = z.object({
     isActive: z.boolean().optional(),
 })
 
+const parameterListQuerySchema = z.object({
+    q: z.string().optional(),
+    idStation: z.string().optional(),
+    idTypeParam: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+})
+
+const stationParameterQuerySchema = z.object({
+    q: z.string().optional(),
+    idTypeParam: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+})
+
 export async function parameterRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get('/', {
         schema: {
             tags: ['parâmetros'],
             summary: 'Listagem de parâmetros',
+            querystring: parameterListQuerySchema,
         },
         handler: parameterController.list,
     })
@@ -28,6 +44,7 @@ export async function parameterRoutes(fastify: FastifyInstance, _options: Fastif
             params: z.object({
                 idStation: z.string().describe('ID da estação'),
             }),
+            querystring: stationParameterQuerySchema,
         },
         handler: parameterController.findByStation,
     })

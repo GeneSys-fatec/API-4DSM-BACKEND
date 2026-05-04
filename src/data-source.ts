@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import * as dotenv from "dotenv";
 import { seedParameterTypes } from "./seeds/parameterTypeSeed.js";
 import { seedAdministrator } from "./seeds/administratorSeed.js";
+import { seedStations } from "./seeds/stationSeed.js"; 
 
 dotenv.config();
 
@@ -13,14 +14,14 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USERNAME!,
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_DATABASE!,
-    synchronize: false,
-    dropSchema: false,
+    synchronize: true,
+    dropSchema: true,
     logging: ["query", "error"],
     entities: ["src/entities/*.ts"],
     migrations: ["src/migrations/*.ts"],
-    ssl: {
-        rejectUnauthorized: false,
-    },
+    // ssl: {
+    //     rejectUnauthorized: false,
+    // },
 });
 
 export async function initializeDatabase(): Promise<void> {
@@ -35,6 +36,7 @@ export async function initializeDatabase(): Promise<void> {
 
     try {
         await seedParameterTypes();
+        await seedStations(); 
         await seedAdministrator();
         console.log("Seeds executados com sucesso!");
     } catch (seedError) {

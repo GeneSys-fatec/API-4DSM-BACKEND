@@ -93,4 +93,14 @@ describe("AuthController", () => {
         expect(replyMock.status).toHaveBeenCalledWith(400);
         expect(replyMock.send).toHaveBeenCalledWith({ error: "Senha incorreta." });
     });
+
+    it("deve retornar status 200 no logout", async () => {
+        const { AuthController } = await import("../../src/controllers/authController.js");
+        const controller = new AuthController();
+
+        await controller.logout({} as any, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(200);
+        expect(replyMock.send).toHaveBeenCalledWith({ message: "Logout realizado com sucesso." });
+    });
 });
