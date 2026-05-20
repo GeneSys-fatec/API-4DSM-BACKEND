@@ -9,6 +9,15 @@ export async function seedStations(): Promise<void> {
   const paramRepo = AppDataSource.getRepository(ParameterEntity);
   const stationsData = [
     {
+      name: "Estação Exemplo Completa",
+      address: "São José dos Campos, SP",
+      latitude: "-23.1896",
+      longitude: "-45.8841",
+      idDatalogger: "EXEMPLO_COMPLETO-01",
+      status: "online",
+      isActive: true,
+    },
+    {
       name: "Estação Meteorológica SJC",
       address: "São José dos Campos, SP",
       latitude: "-23.1791",
@@ -63,6 +72,7 @@ export async function seedStations(): Promise<void> {
 
     for (const station of createdStations) {
     
+      const isExampleComplete = station.idDatalogger.includes("EXEMPLO_COMPLETO");
       const isPluviometro = station.idDatalogger.includes("PLUVIOMETRO");
       const isQualidadeAr = station.idDatalogger.includes("QUALIDADE_AR");
       const isSolo = station.idDatalogger.includes("SOLO");
@@ -73,7 +83,7 @@ export async function seedStations(): Promise<void> {
         const isAr = pType.id >= 2 && pType.id <= 5;
         const isTerra = pType.id >= 6 && pType.id <= 8;
 
-        if ((isPluviometro && isChuva) || (isQualidadeAr && isAr) || (isSolo && isTerra)) {
+        if (isExampleComplete || (isPluviometro && isChuva) || (isQualidadeAr && isAr) || (isSolo && isTerra)) {
           const linkExists = await paramRepo.findOneBy({
             idStation: station.id,
             idTypeParam: pType.id,
