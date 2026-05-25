@@ -113,6 +113,54 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     });
   });
 
+  it("deve atualizar apenas o limite mínimo quando maxExpected estiver ausente", async () => {
+    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
+    const service = new ParameterLimitsService();
+
+    const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
+    repositoryMock.findOneBy.mockResolvedValueOnce(existing);
+    repositoryMock.save.mockResolvedValueOnce({ ...existing, minExpected: 12 });
+
+    const result = await service.update(1, { minExpected: 12 });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 1 },
+      minExpected: 12,
+      maxExpected: 20,
+    });
+    expect(result).toEqual({
+      id: 1,
+      idTypeParam: { id: 1 },
+      minExpected: 12,
+      maxExpected: 20,
+    });
+  });
+
+  it("deve atualizar também o tipo do parâmetro quando o idTypeParam é informado", async () => {
+    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
+    const service = new ParameterLimitsService();
+
+    const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
+    repositoryMock.findOneBy.mockResolvedValueOnce(existing);
+    repositoryMock.save.mockResolvedValueOnce({ ...existing, idTypeParam: { id: 3 }, minExpected: 8, maxExpected: 18 });
+
+    const result = await service.update(1, { idTypeParam: 3, minExpected: 8, maxExpected: 18 });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 8,
+      maxExpected: 18,
+    });
+    expect(result).toEqual({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 8,
+      maxExpected: 18,
+    });
+  });
+
   it("deve retornar false ao excluir limite inexistente", async () => {
     const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
