@@ -53,7 +53,7 @@ const start = async () => {
     try {
         await app.listen({ port: 3333, host: '0.0.0.0' })
     }
-    catch (err) {
+    catch (_err) {
         process.exit(1)
     }
 }
