@@ -24,10 +24,24 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
       - name: Build
         run: npm run build
       - name: Test
         run: npm run test:unit
+
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate commits with commitlint
+        uses: wagoid/commitlint-github-action@v6
 
   deploy-sandbox:
     runs-on: ubuntu-latest

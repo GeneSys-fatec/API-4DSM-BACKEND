@@ -1,4 +1,5 @@
 import { AppDataSource } from "../data-source.js";
+import { SelectQueryBuilder } from "typeorm";
 import { MeasurementEntity } from "../entities/measurementEntity.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
@@ -34,7 +35,7 @@ export interface AggregationResponse {
 export class DashboardService {
     private readonly measurementRepository = AppDataSource.getRepository(MeasurementEntity);
 
-    private applyFilters(qb: any, filters: DashboardQueryDTO) {
+    private applyFilters(qb: SelectQueryBuilder<MeasurementEntity>, filters: DashboardQueryDTO) {
         if (filters.parameterId) {
             qb.andWhere("parameter.id = :parameterId", { parameterId: filters.parameterId });
         }
@@ -44,7 +45,7 @@ export class DashboardService {
         }
 
         let start = filters.startDate ? new Date(filters.startDate) : null;
-        let end = filters.endDate ? new Date(filters.endDate) : new Date();
+        const end = filters.endDate ? new Date(filters.endDate) : new Date();
 
         if (filters.period) {
             start = new Date();

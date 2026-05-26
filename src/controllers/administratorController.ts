@@ -16,8 +16,8 @@ export class AdministratorController {
         try {
             const administrator = await administratorService.create({ name, email, password });
             return reply.send(administrator);
-        } catch (error: any) {
-            return reply.status(400).send({ error: error.message });
+        } catch (error) {
+            return reply.status(400).send({ error: error instanceof Error ? error.message : "Unknown error" });
         }
     }
 
@@ -44,8 +44,8 @@ export class AdministratorController {
         try {
             const administrator = await administratorService.listById(id);
             return reply.send(administrator);
-        } catch (error: any) {
-            return reply.status(404).send({ error: error.message });
+        } catch (error) {
+            return reply.status(404).send({ error: error instanceof Error ? error.message : "Unknown error" });
         }
     }
 
@@ -58,8 +58,8 @@ export class AdministratorController {
         try {
             const administrator = await administratorService.update({ id, newEmail, newName, newPassword });
             return reply.send(administrator);
-        } catch (error: any) {
-            return reply.status(400).send({ error: error.message })
+        } catch (error) {
+            return reply.status(400).send({ error: error instanceof Error ? error.message : "Unknown error" })
         }
     }
 
@@ -70,8 +70,8 @@ export class AdministratorController {
         try {
             const result = await administratorService.delete({ id });
             return reply.send(result);
-        } catch (error: any) {
-            return reply.status(400).send({ error: error.message });
+        } catch (error) {
+            return reply.status(400).send({ error: error instanceof Error ? error.message : "Unknown error" });
         }
     }
 };

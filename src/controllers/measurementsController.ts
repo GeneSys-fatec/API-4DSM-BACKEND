@@ -33,7 +33,7 @@ export class MeasurementsController {
             const result = await dashboardService.getMeasurements(filters);
             return reply.send(result);
         } catch (error) {
-            console.error("Erro ao buscar medições:", error);
+            request.log.error(error, "Erro ao buscar medições:");
             return reply.status(500).send({ message: "Erro interno ao buscar medições." });
         }
     };
@@ -57,7 +57,7 @@ export class MeasurementsController {
             const result = await dashboardService.getAggregations(filters);
             return reply.send(result);
         } catch (error) {
-            console.error("Erro ao gerar agregações:", error);
+            request.log.error(error, "Erro ao gerar agregações:");
             return reply.status(500).send({ message: "Erro interno ao gerar agregações." });
         }
     };

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { dashboardService } from "../../src/services/measurementsService";
 
 // Fazendo o Mock (simulação) do TypeORM e do Banco de Dados
