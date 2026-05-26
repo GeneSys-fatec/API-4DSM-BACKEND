@@ -204,4 +204,137 @@ describe("AdministratorService", () => {
         expect(repositoryMock.delete).toHaveBeenCalledWith(1);
         expect(resultado).toEqual({ message: "Cliente removido!" });
     });
+
+    // LIST BY ID
+    it("deve retornar administrador quando listById encontra pelo id", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const adminMock = { id: 1, name: "Admin", email: "admin@admin.com" };
+        repositoryMock.findOne.mockResolvedValueOnce(adminMock);
+
+        const resultado = await service.listById(1);
+
+        expect(repositoryMock.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+        expect(resultado).toEqual(adminMock);
+    });
+
+    it("deve lançar erro quando listById não encontra administrador", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        repositoryMock.findOne.mockResolvedValueOnce(null);
+
+        await expect(service.listById(999)).rejects.toThrow("Administrador não encontrado.");
+    });
+
+    it("deve lançar erro quando listById recebe id falsy", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        await expect(service.listById(0)).rejects.toThrow("O ID é necessário para a busca.");
+    });
+
+    // LIST com filtro from
+    it("deve aplicar filtro from na listagem de administradores", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const from = new Date("2026-01-01");
+        const resultado = await service.list({ from });
+
+        expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("administrator");
+        expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("administrator.createdAt >= :from", { from });
+        expect(resultado).toEqual([]);
+    });
+
+    // LIST com filtro to
+    it("deve aplicar filtro to na listagem de administradores", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const to = new Date("2026-12-31");
+        const resultado = await service.list({ to });
+
+        expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("administrator");
+        expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("administrator.createdAt <= :to", { to });
+        expect(resultado).toEqual([]);
+    });
+
+    // LIST com filtro from e to
+    it("deve aplicar filtros from e to combinados na listagem", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([{ id: 5 }]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const from = new Date("2026-01-01");
+        const to = new Date("2026-12-31");
+        const resultado = await service.list({ from, to });
+
+        expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("administrator.createdAt >= :from", { from });
+        expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("administrator.createdAt <= :to", { to });
+        expect(resultado).toEqual([{ id: 5 }]);
+    });
+
+    // LIST com apenas searchTerm (q) sem status
+    it("deve aplicar filtro de busca textual sem status", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([{ id: 10 }]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const resultado = await service.list({ q: "admin" });
+
+        expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("administrator");
+        expect(queryBuilderMock.andWhere).toHaveBeenCalled();
+        expect(resultado).toEqual([{ id: 10 }]);
+    });
+
+    // LIST com apenas status
+    it("deve aplicar apenas filtro de status na listagem", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        const queryBuilderMock = {
+            orderBy: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getMany: vi.fn().mockResolvedValueOnce([]),
+        };
+
+        repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+        const resultado = await service.list({ status: false });
+
+        expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("administrator.status = :status", { status: false });
+        expect(resultado).toEqual([]);
+    });
 });

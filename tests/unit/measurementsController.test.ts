@@ -18,6 +18,15 @@ function makeReply() {
     return reply;
 }
 
+function makeRequest(query: any = {}) {
+    return {
+        query,
+        log: {
+            error: vi.fn(),
+        },
+    } as any;
+}
+
 describe("MeasurementsController", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -25,7 +34,7 @@ describe("MeasurementsController", () => {
 
     it("deve retornar medições com sucesso (getMeasurements)", async () => {
         const reply = makeReply();
-        const request: any = { query: { stationId: "1", page: "2", limit: "50" } };
+        const request = makeRequest({ stationId: "1", page: "2", limit: "50" });
         
         vi.mocked(dashboardService.getMeasurements).mockResolvedValueOnce({
             data: [], total: 0, page: 2, limit: 50, totalPages: 0
@@ -41,7 +50,7 @@ describe("MeasurementsController", () => {
 
     it("deve retornar erro 500 caso o service falhe em getMeasurements", async () => {
         const reply = makeReply();
-        const request: any = { query: {} };
+        const request = makeRequest({});
         
         vi.mocked(dashboardService.getMeasurements).mockRejectedValueOnce(new Error("DB Error"));
 
@@ -53,7 +62,7 @@ describe("MeasurementsController", () => {
 
     it("deve retornar agregações com sucesso (getAggregations)", async () => {
         const reply = makeReply();
-        const request: any = { query: { period: "7d" } };
+        const request = makeRequest({ period: "7d" });
         
         vi.mocked(dashboardService.getAggregations).mockResolvedValueOnce([]);
 
@@ -65,7 +74,7 @@ describe("MeasurementsController", () => {
 
     it("deve retornar erro 500 caso o service falhe em getAggregations", async () => {
         const reply = makeReply();
-        const request: any = { query: {} };
+        const request = makeRequest({});
         
         vi.mocked(dashboardService.getAggregations).mockRejectedValueOnce(new Error("DB Error"));
 
@@ -73,10 +82,11 @@ describe("MeasurementsController", () => {
 
         expect(reply.status).toHaveBeenCalledWith(500);
     });
+
     it("deve usar valores padrão quando query params não forem enviados (getMeasurements e getAggregations)", async () => {
         const reply = makeReply();
         // Simulando uma requisição sem query params (sem page, limit, period, etc)
-        const request: any = { query: {} }; 
+        const request = makeRequest({}); 
         
         vi.mocked(dashboardService.getMeasurements).mockResolvedValueOnce({
             data: [], total: 0, page: 1, limit: 100, totalPages: 0
@@ -95,20 +105,19 @@ describe("MeasurementsController", () => {
         // Verifica se chamou com filtro vazio
         expect(dashboardService.getAggregations).toHaveBeenCalledWith({});
     });
+
     it("deve cobrir todas as ramificações lógicas de filtros opcionais simultaneamente", async () => {
         const reply = makeReply();
         // Simulando a requisição com todos os parâmetros preenchidos para ativar todos os ifs
-        const request: any = { 
-            query: { 
-                stationId: "1", 
-                parameterId: "5", 
-                startDate: "2024-01-01", 
-                endDate: "2024-01-31", 
-                period: "7d", 
-                page: "1", 
-                limit: "10" 
-            } 
-        };
+        const request = makeRequest({ 
+            stationId: "1", 
+            parameterId: "5", 
+            startDate: "2024-01-01", 
+            endDate: "2024-01-31", 
+            period: "7d", 
+            page: "1", 
+            limit: "10" 
+        });
         
         vi.mocked(dashboardService.getMeasurements).mockResolvedValueOnce({} as any);
         await measurementsController.getMeasurements(request, reply);
