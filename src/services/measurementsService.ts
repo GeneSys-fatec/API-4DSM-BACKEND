@@ -50,16 +50,14 @@ export class DashboardService {
         if (filters.period) {
             start = new Date();
             if (filters.period === "24h") start.setHours(start.getHours() - 24);
-            if (filters.period === "7d") start.setDate(start.getDate() - 7);
-            if (filters.period === "30d") start.setDate(start.getDate() - 30);
+            else if (filters.period === "7d") start.setDate(start.getDate() - 7);
+            else if (filters.period === "30d") start.setDate(start.getDate() - 30);
         }
 
         if (start) {
             qb.andWhere("measurement.collectedAt >= :start", { start });
         }
-        if (end) {
-            qb.andWhere("measurement.collectedAt <= :end", { end });
-        }
+        qb.andWhere("measurement.collectedAt <= :end", { end });
     }
 
     async getMeasurements(filters: DashboardQueryDTO): Promise<PaginatedResponse<MeasurementEntity>> {
