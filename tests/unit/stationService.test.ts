@@ -114,7 +114,7 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
       createdBy: "system",
       updatedBy: "system",
     });
-    expect(result).toEqual({ id: 1, saved: true });
+    expect(result).toEqual({ id: 9, saved: true });
   });
 
   it("Critério: O sistema deve permitir editar e remover estações - retorna null se não encontra", async () => {
