@@ -109,6 +109,7 @@ export class AlertController {
                 reply.raw.write(`data: ${JSON.stringify(unreadAlerts.map((item) => mapAlertResponse(item as unknown as AlertPayload)))}\n\n`);
             }
         } catch (_error) {
+            // Erro ao carregar alertas ignorado para manter stream ativo
         }
 
         const onAlert = (alert: AlertPayload) => {
