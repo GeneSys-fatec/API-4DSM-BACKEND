@@ -60,6 +60,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     const service = new ParameterLimitsService();
 
     const createdEntity = { id: 1 };
+    repositoryMock.findBy.mockResolvedValueOnce([]);
     repositoryMock.create.mockReturnValueOnce(createdEntity);
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
@@ -69,6 +70,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
       maxExpected: 35,
     });
 
+    expect(repositoryMock.findBy).toHaveBeenCalledWith({ idTypeParam: { id: 3 } });
     expect(repositoryMock.create).toHaveBeenCalledWith({
       idTypeParam: { id: 3 },
       minExpected: 5,
@@ -76,6 +78,29 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     });
     expect(repositoryMock.save).toHaveBeenCalledWith(createdEntity);
     expect(result).toEqual({ id: 1, saved: true });
+  });
+
+  it("deve atualizar o limite se já existir um cadastrado para o parâmetro ao tentar criar", async () => {
+    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
+    const service = new ParameterLimitsService();
+
+    const existingEntity = { id: 1, idTypeParam: { id: 3 }, minExpected: 0, maxExpected: 10 };
+    repositoryMock.findBy.mockResolvedValueOnce([existingEntity]);
+    repositoryMock.save.mockResolvedValueOnce({ ...existingEntity, minExpected: 5, maxExpected: 35 });
+
+    const result = await service.create({
+      idTypeParam: 3,
+      minExpected: 5,
+      maxExpected: 35,
+    });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 5,
+      maxExpected: 35,
+    });
+    expect(result).toEqual({ id: 1, idTypeParam: { id: 3 }, minExpected: 5, maxExpected: 35 });
   });
 
   it("deve retornar null ao atualizar limite inexistente", async () => {

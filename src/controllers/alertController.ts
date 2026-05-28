@@ -1,141 +1,54 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { AlertLogEntity } from "../entities/alertLogEntity.js";
-import { alertService } from "../services/alertService.js";
-import { parseOptionalDate, parseOptionalNumber } from "../utils/filterParser.js";
+import { alertService, alertNotificationEmitter, type AlertListFilters, type EvaluateMeasurementInput } from "../services/alertService.js";
 
-interface AlertParams {
-    id: string;
+interface AlertPayload {
+    idParameter?: { id: number };
+    triggeredAt?: Date;
+    texto?: string;
+    titulo?: string;
+    isRead?: boolean;
+    stationName?: string;
+    [key: string]: unknown;
 }
 
-interface CreateAlertBody {
-    parameterId: number;
-    measuredValue: number;
-    occurredAt: string;
-    description: string;
-}
-
-interface EvaluateBody {
-    parameterId: number;
-    measuredValue: number;
-    occurredAt: string;
-}
-
-interface AlertListQuery {
-    q?: string;
-    stationId?: string;
-    parameterId?: string;
-    idTypeParam?: string;
-    status?: "active" | "resolved";
-    user?: string;
-    from?: string;
-    to?: string;
-}
-
-function mapAlertResponse(alert: AlertLogEntity) {
+function mapAlertResponse(alert: AlertPayload) {
     return {
-        id: alert.id,
-        parameterId: alert.idParameter.id,
-        measurementId: alert.idMeasurement.id,
-        measuredValue: Number(alert.triggeredValue),
+        ...alert,
+        parameterId: alert.idParameter?.id,
         occurredAt: alert.triggeredAt,
         description: alert.texto ?? alert.titulo ?? "",
-        status: alert.status,
+        isRead: alert.isRead,
     };
 }
 
 export class AlertController {
-    list = async (request: FastifyRequest<{ Querystring: AlertListQuery }>, reply: FastifyReply) => {
-        const query = request.query ?? {};
-        const stationId = parseOptionalNumber(query.stationId);
-        const parameterId = parseOptionalNumber(query.parameterId);
-        const idTypeParam = parseOptionalNumber(query.idTypeParam);
-        const from = parseOptionalDate(query.from);
-        const to = parseOptionalDate(query.to, { endOfDay: true });
+    list = async (request: FastifyRequest<{ Querystring: Record<string, string | undefined> }>, reply: FastifyReply) => {
+        const query = request.query || {};
+        
+        const filters: AlertListFilters = {};
+        if (query.stationId !== undefined) filters.stationId = Number(query.stationId);
+        if (query.parameterId !== undefined) filters.parameterId = Number(query.parameterId);
+        if (query.idTypeParam !== undefined) filters.idTypeParam = Number(query.idTypeParam);
+        if (query.status !== undefined) filters.status = query.status as AlertListFilters["status"];
+        if (query.user !== undefined) filters.user = query.user;
+        if (query.q !== undefined) filters.q = query.q;
+        if (query.from !== undefined) filters.from = new Date(query.from);
+        if (query.to !== undefined) filters.to = new Date(query.to);
+        if (query.isRead !== undefined) filters.isRead = query.isRead === 'true' || query.isRead === true;
+        if (query.page !== undefined) filters.page = Number(query.page);
+        if (query.limit !== undefined) filters.limit = Number(query.limit);
 
-        const alerts = await alertService.listAlerts({
-            ...(query.q !== undefined ? { q: query.q } : {}),
-            ...(stationId !== undefined ? { stationId } : {}),
-            ...(parameterId !== undefined ? { parameterId } : {}),
-            ...(idTypeParam !== undefined ? { idTypeParam } : {}),
-            ...(query.status !== undefined ? { status: query.status } : {}),
-            ...(query.user !== undefined ? { user: query.user } : {}),
-            ...(from !== undefined ? { from } : {}),
-            ...(to !== undefined ? { to } : {}),
+        const paginatedResult = await alertService.listAlerts(filters);
+        
+        return reply.send({
+            ...paginatedResult,
+            data: paginatedResult.data.map((item) => mapAlertResponse(item as unknown as AlertPayload))
         });
-        return reply.send(alerts.map(mapAlertResponse));
     };
 
-    create = async (
-        request: FastifyRequest<{ Body: CreateAlertBody }>,
-        reply: FastifyReply,
-    ) => {
-        const { parameterId, measuredValue, occurredAt, description } = request.body;
-
-        if (!parameterId || measuredValue === undefined || !occurredAt || !description) {
-            return reply.status(400).send({
-                message: "Fields 'parameterId', 'measuredValue', 'occurredAt' and 'description' are required",
-            });
-        }
-
-        try {
-            const alert = await alertService.createAlert({
-                parameterId,
-                measuredValue,
-                occurredAt,
-                description,
-            });
-
-            const fullAlert = await alertService.findAlertById(alert.id);
-            if (!fullAlert) {
-                return reply.status(500).send({ message: "Alert created but not found" });
-            }
-
-            return reply.status(201).send(mapAlertResponse(fullAlert));
-        } catch (error) {
-            return reply.status(400).send({ message: (error as Error).message });
-        }
-    };
-
-    update = async (
-        request: FastifyRequest<{ Params: AlertParams; Body: Partial<CreateAlertBody> & { status?: "active" | "resolved" } }>,
-        reply: FastifyReply,
-    ) => {
-        const id = Number(request.params.id);
-        if (Number.isNaN(id)) {
-            return reply.status(400).send({ message: "Invalid alert id" });
-        }
-
-        try {
-            const payload = {
-                ...(request.body.parameterId !== undefined ? { parameterId: request.body.parameterId } : {}),
-                ...(request.body.measuredValue !== undefined ? { measuredValue: request.body.measuredValue } : {}),
-                ...(request.body.occurredAt !== undefined ? { occurredAt: request.body.occurredAt } : {}),
-                ...(request.body.description !== undefined ? { description: request.body.description } : {}),
-                ...(request.body.status !== undefined ? { status: request.body.status } : {}),
-            };
-
-            const updated = await alertService.updateAlert(id, payload);
-
-            if (!updated) {
-                return reply.status(404).send({ message: "Alert not found" });
-            }
-
-            const fullAlert = await alertService.findAlertById(updated.id);
-            if (!fullAlert) {
-                return reply.status(500).send({ message: "Updated alert not found" });
-            }
-
-            return reply.send(mapAlertResponse(fullAlert));
-        } catch (error) {
-            return reply.status(400).send({ message: (error as Error).message });
-        }
-    };
-
-    delete = async (
-        request: FastifyRequest<{ Params: AlertParams }>,
-        reply: FastifyReply,
-    ) => {
-        const id = Number(request.params.id);
+    delete = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+        const params = request.params;
+        const id = Number(params.id);
         if (Number.isNaN(id)) {
             return reply.status(400).send({ message: "Invalid alert id" });
         }
@@ -145,14 +58,79 @@ export class AlertController {
             return reply.status(404).send({ message: "Alert not found" });
         }
 
-        return reply.status(204).send({ message: "Alert deleted successfully" });
+        return reply.status(204).send();
     };
 
-    evaluate = async (
-        request: FastifyRequest<{ Body: EvaluateBody }>,
-        reply: FastifyReply,
-    ) => {
-        const { parameterId, measuredValue, occurredAt } = request.body;
+    markAsRead = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+        const params = request.params;
+        const id = Number(params.id);
+        if (Number.isNaN(id)) {
+            return reply.status(400).send({ message: "Invalid alert id" });
+        }
+
+        const success = await alertService.markAsRead(id);
+        if (!success) {
+            return reply.status(404).send({ message: "Alert not found" });
+        }
+
+        return reply.status(204).send();
+    };
+
+    markAllAsRead = async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const count = await alertService.markAllAsRead();
+            return reply.send({ message: `${count} alertas marcados como lidos` });
+        } catch (error) {
+            return reply.status(500).send({ message: error instanceof Error ? error.message : "Erro interno" });
+        }
+    };
+
+    clearRead = async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const count = await alertService.clearReadAlerts();
+            return reply.send({ message: `${count} alertas lidos foram apagados` });
+        } catch (error) {
+            return reply.status(500).send({ message: error instanceof Error ? error.message : "Erro interno" });
+        }
+    };
+
+    stream = async (request: FastifyRequest, reply: FastifyReply) => {
+        reply.raw.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+        });
+
+        try {
+            const paginatedResult = await alertService.listAlerts({ isRead: false, status: "active" as AlertListFilters["status"] });
+            const unreadAlerts = paginatedResult.data;
+            if (unreadAlerts.length > 0) {
+                reply.raw.write(`data: ${JSON.stringify(unreadAlerts.map((item) => mapAlertResponse(item as unknown as AlertPayload)))}\n\n`);
+            }
+        } catch (_error) {
+        }
+
+        const onAlert = (alert: AlertPayload) => {
+            if (alert && alert.stationName) {
+                reply.raw.write(`data: ${JSON.stringify(alert)}\n\n`);
+            } else {
+                const data = JSON.stringify(mapAlertResponse(alert));
+                reply.raw.write(`data: ${data}\n\n`);
+            }
+        };
+
+        alertNotificationEmitter.on("alertTriggered", onAlert);
+
+        request.raw.on("close", () => {
+            alertNotificationEmitter.off("alertTriggered", onAlert);
+        });
+
+        reply.hijack();
+    };
+
+    evaluate = async (request: FastifyRequest<{ Body: EvaluateMeasurementInput }>, reply: FastifyReply) => {
+        const { parameterId, measuredValue, occurredAt } = request.body || {};
 
         if (!parameterId || measuredValue === undefined || !occurredAt) {
             return reply.status(400).send({
@@ -161,18 +139,14 @@ export class AlertController {
         }
 
         try {
-            const generated = await alertService.evaluateMeasurement({
-                parameterId,
-                measuredValue,
-                occurredAt,
-            });
-
+            const generated = await alertService.evaluateMeasurement({ parameterId, measuredValue, occurredAt });
+            
             return reply.send({
                 generatedCount: generated.length,
-                alerts: generated.map(mapAlertResponse),
+                alerts: generated.map((item) => mapAlertResponse(item as unknown as AlertPayload)),
             });
         } catch (error) {
-            return reply.status(400).send({ message: (error as Error).message });
+            return reply.status(400).send({ message: error instanceof Error ? error.message : "Unknown error" });
         }
     };
 }
