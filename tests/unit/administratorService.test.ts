@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("typeorm", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("typeorm")>();
+    return {
+        ...actual,
+        Brackets: class Brackets {
+            constructor(cb: any) {
+                cb({
+                    where: vi.fn().mockReturnThis(),
+                    orWhere: vi.fn().mockReturnThis(),
+                    andWhere: vi.fn().mockReturnThis(),
+                });
+            }
+        },
+    };
+});
+
 const repositoryMock = vi.hoisted(() => ({
     find: vi.fn(),
     findOne: vi.fn(),
@@ -159,6 +175,29 @@ describe("AdministratorService", () => {
         // Assert
         expect(repositoryMock.update).toHaveBeenCalledWith({ id: 1 }, { name: "Nome Atualizado" });
         expect(resultado).toEqual({ message: "Administrador atualizado com sucesso!" });
+    });
+
+    it("deve atualizar a senha criptografada quando newPassword é fornecido", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        repositoryMock.update.mockResolvedValueOnce({ affected: 1 });
+
+        const resultado = await service.update({ id: 1, newPassword: "senha_nova" });
+
+        expect(repositoryMock.update).toHaveBeenCalledWith({ id: 1 }, { password: "hashed_password" });
+        expect(resultado).toEqual({ message: "Administrador atualizado com sucesso!" });
+    });
+
+    it("deve atualizar apenas nome e email", async () => {
+        const { AdministratorService } = await import("../../src/services/administratorService.js");
+        const service = new AdministratorService();
+
+        repositoryMock.update.mockResolvedValueOnce({ affected: 1 });
+
+        await service.update({ id: 1, newName: "Novo", newEmail: "email" });
+
+        expect(repositoryMock.update).toHaveBeenCalledWith({ id: 1 }, { name: "Novo", email: "email" });
     });
 
     // DELETE

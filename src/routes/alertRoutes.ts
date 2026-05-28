@@ -6,17 +6,6 @@ const alertIdSchema = z.object({
     id: z.string().describe("Alert id"),
 });
 
-const createAlertBodySchema = z.object({
-    parameterId: z.number().int(),
-    measuredValue: z.number(),
-    occurredAt: z.string(),
-    description: z.string().min(1),
-});
-
-const updateAlertBodySchema = createAlertBodySchema.partial().extend({
-    status: z.enum(["active", "resolved"]).optional(),
-});
-
 const evaluateBodySchema = z.object({
     parameterId: z.number().int(),
     measuredValue: z.number(),
@@ -32,6 +21,9 @@ const alertListQuerySchema = z.object({
     user: z.string().optional(),
     from: z.string().optional(),
     to: z.string().optional(),
+    isRead: z.string().optional(),
+    page: z.string().optional(),
+    limit: z.string().optional(),
 });
 
 export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
@@ -44,23 +36,29 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
         handler: alertController.list,
     });
 
-    fastify.post("/create", {
+    fastify.patch("/read-all", {
         schema: {
             tags: ["alertas"],
-            summary: "Cadastre um alerta",
-            body: createAlertBodySchema,
+            summary: "Marca todos os alertas pendentes como lidos",
         },
-        handler: alertController.create,
+        handler: alertController.markAllAsRead,
     });
 
-    fastify.put("/update/:id", {
+    fastify.patch("/:id/read", {
         schema: {
             tags: ["alertas"],
-            summary: "Atualize um alerta",
+            summary: "Marca um alerta como lido",
             params: alertIdSchema,
-            body: updateAlertBodySchema,
         },
-        handler: alertController.update,
+        handler: alertController.markAsRead,
+    });
+
+    fastify.delete("/clear", {
+        schema: {
+            tags: ["alertas"],
+            summary: "Limpa (exclui/soft-delete) todos os alertas já lidos",
+        },
+        handler: alertController.clearRead,
     });
 
     fastify.delete("/delete/:id", {
@@ -70,6 +68,16 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             params: alertIdSchema,
         },
         handler: alertController.delete,
+    });
+}
+
+export async function publicAlertRoutes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
+    fastify.get("/stream", {
+        schema: {
+            tags: ["alertas"],
+            summary: "Stream de alertas em tempo real via Server-Sent Events (SSE)",
+        },
+        handler: alertController.stream,
     });
 
     fastify.post("/evaluate", {
