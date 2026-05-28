@@ -29,12 +29,12 @@ export class AlertController {
         if (query.stationId !== undefined) filters.stationId = Number(query.stationId);
         if (query.parameterId !== undefined) filters.parameterId = Number(query.parameterId);
         if (query.idTypeParam !== undefined) filters.idTypeParam = Number(query.idTypeParam);
-        if (query.status !== undefined) filters.status = query.status as AlertListFilters["status"];
+        if (query.status !== undefined) filters.status = query.status as NonNullable<AlertListFilters["status"]>;
         if (query.user !== undefined) filters.user = query.user;
         if (query.q !== undefined) filters.q = query.q;
         if (query.from !== undefined) filters.from = new Date(query.from);
         if (query.to !== undefined) filters.to = new Date(query.to);
-        if (query.isRead !== undefined) filters.isRead = query.isRead === 'true' || query.isRead === true;
+        if (query.isRead !== undefined) filters.isRead = String(query.isRead) === 'true';
         if (query.page !== undefined) filters.page = Number(query.page);
         if (query.limit !== undefined) filters.limit = Number(query.limit);
 
@@ -103,7 +103,7 @@ export class AlertController {
         });
 
         try {
-            const paginatedResult = await alertService.listAlerts({ isRead: false, status: "active" as AlertListFilters["status"] });
+            const paginatedResult = await alertService.listAlerts({ isRead: false, status: "active" as NonNullable<AlertListFilters["status"]> });
             const unreadAlerts = paginatedResult.data;
             if (unreadAlerts.length > 0) {
                 reply.raw.write(`data: ${JSON.stringify(unreadAlerts.map((item) => mapAlertResponse(item as unknown as AlertPayload)))}\n\n`);
