@@ -91,6 +91,7 @@ export class AlertEvaluationService {
             }
 
         } catch (_error) {
+            // Falha ignorada silenciosamente por ser um processo de fundo
         }
     }
 }
