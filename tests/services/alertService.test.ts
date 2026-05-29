@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AlertService } from "../../src/services/alertService.js";
 
 vi.mock("typeorm", async (importOriginal) => {
     const actual = await importOriginal<typeof import("typeorm")>();
@@ -68,7 +69,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve listar histórico de alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }, { id: 2 }], 2]);
@@ -80,7 +80,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar paginacao ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }], 1]);
@@ -94,7 +93,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtros ao listar histórico de alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
@@ -117,7 +115,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve remover alerta existente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 10 });
@@ -130,7 +127,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve buscar alerta pelo ID", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 10 });
@@ -143,7 +139,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve marcar alerta como lido", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 1, isRead: false });
         alertRepositoryMock.save.mockResolvedValueOnce({ id: 1, isRead: true });
@@ -155,7 +150,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar false ao tentar marcar alerta inexistente como lido", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.findOne.mockResolvedValueOnce(null);
         const result = await service.markAsRead(999);
@@ -163,7 +157,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve marcar todos os alertas como lidos", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.update.mockResolvedValueOnce({ affected: 5 });
         const result = await service.markAllAsRead();
@@ -172,7 +165,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar 0 quando update não retornar affected no markAllAsRead", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.update.mockResolvedValueOnce({});
         const result = await service.markAllAsRead();
@@ -180,7 +172,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve limpar alertas lidos", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.delete.mockResolvedValueOnce({ affected: 3 });
         const result = await service.clearReadAlerts();
@@ -189,7 +180,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
     
     it("deve lidar com erro ao limpar alertas (retornando 0 quando não tem affected)", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.delete.mockResolvedValueOnce({});
         const result = await service.clearReadAlerts();
@@ -197,7 +187,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
     
     it("deve lidar com erro ao limpar alertas (afetadas 0)", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
         alertRepositoryMock.delete.mockResolvedValueOnce({ affected: 0 });
         const result = await service.clearReadAlerts();
@@ -205,7 +194,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve lançar erro quando parameterId não existe", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce(null);
@@ -218,7 +206,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
     
     it("deve lançar erro quando occurredAt for inválido", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
@@ -231,7 +218,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar array vazio se falhar ao salvar a medição", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
@@ -246,7 +232,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar alerta automático quando medição ultrapassar limite configurado", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
@@ -280,7 +265,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve atualizar alerta ativo existente em vez de criar um novo ao ultrapassar limite", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
@@ -319,7 +303,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("não deve gerar alerta automático quando medição estiver na faixa", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
@@ -343,7 +326,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta automático de temperatura alta", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
@@ -380,7 +362,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de temperatura baixa", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
@@ -417,7 +398,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de chuva acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 10, idTypeParam: 2 });
@@ -454,7 +434,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de chuva abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 10, idTypeParam: 2 });
@@ -491,7 +470,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de vento acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 11, idTypeParam: 3 });
@@ -528,7 +506,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de vento abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 11, idTypeParam: 3 });
@@ -565,7 +542,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de umidade acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 12, idTypeParam: 4 });
@@ -602,7 +578,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de umidade abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 12, idTypeParam: 4 });
@@ -639,7 +614,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto genérico (fallback) para parâmetro não mapeado", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 13, idTypeParam: 5 });
@@ -676,7 +650,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtros individuais ao listar alertas - stationId e parameterId", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
@@ -704,7 +677,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtro de idTypeParam ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
@@ -728,7 +700,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtro de user ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
@@ -750,7 +721,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtros de data ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
@@ -781,7 +751,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar false ao deletar alerta inexistente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findOne.mockResolvedValueOnce(null);
@@ -793,7 +762,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar array vazio quando não há limites configurados", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
@@ -813,7 +781,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve usar o fallback de find caso findOne nao retorne limites", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
@@ -840,7 +807,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar alerta automático quando medição estiver abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
@@ -878,7 +844,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar alerta com texto fallback quando parameterType é null", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 14, idTypeParam: 99 });
@@ -911,7 +876,6 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar alerta com texto fallback 'abaixo' quando parameterType é null e valor abaixo do min", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 15, idTypeParam: 99 });

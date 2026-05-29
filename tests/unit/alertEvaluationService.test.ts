@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { alertEvaluationService } from "../../src/services/alertEvaluationService.js";
 
 const alertRepositoryMock = vi.hoisted(() => ({
     create: vi.fn(),
@@ -30,7 +31,7 @@ vi.mock("../../src/data-source.js", () => ({
     }
 }));
 
-const emitMock = vi.fn();
+const emitMock = vi.hoisted(() => vi.fn());
 vi.mock("../../src/services/alertService.js", () => ({
     alertNotificationEmitter: {
         emit: emitMock
@@ -43,20 +44,17 @@ describe("AlertEvaluationService", () => {
     });
 
     it("deve retornar se parameterId for indefinido ou null", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         await alertEvaluationService.evaluate({ id: 1, value: 50, idParameter: null } as any);
         expect(parameterRepositoryMock.findOneBy).not.toHaveBeenCalled();
     });
 
     it("deve retornar se o parametro nao for encontrado no banco", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce(null);
         await alertEvaluationService.evaluate({ id: 1, value: 50, idParameter: 99 } as any);
         expect(limitsRepositoryMock.findOne).not.toHaveBeenCalled();
     });
 
     it("deve retornar se nao houver limite configurado para o tipo de parametro", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 99, idTypeParam: 2 });
         limitsRepositoryMock.findOne.mockResolvedValueOnce(null);
         await alertEvaluationService.evaluate({ id: 1, value: 50, idParameter: { id: 99 } } as any);
@@ -64,7 +62,6 @@ describe("AlertEvaluationService", () => {
     });
 
     it("deve gerar alerta quando o valor for MENOR que o limite minimo", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 99, idTypeParam: { id: 2 }, idStation: 5 });
         limitsRepositoryMock.findOne.mockResolvedValueOnce({ minExpected: 10, maxExpected: 40 });
@@ -87,7 +84,6 @@ describe("AlertEvaluationService", () => {
     });
 
     it("deve gerar alerta quando o valor for MAIOR que o limite maximo, tratando falhas nas buscas auxiliares", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 99, idTypeParam: 2, idStation: { id: 5 } });
         limitsRepositoryMock.findOne.mockResolvedValueOnce({ minExpected: 10, maxExpected: 40 });
@@ -110,7 +106,6 @@ describe("AlertEvaluationService", () => {
     });
 
     it("nao deve gerar alerta quando o valor estiver dentro dos limites", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 99, idTypeParam: 2 });
         limitsRepositoryMock.findOne.mockResolvedValueOnce({ minExpected: 10, maxExpected: 40 });
@@ -122,7 +117,6 @@ describe("AlertEvaluationService", () => {
     });
 
     it("deve ignorar o erro caso ocorra excecao durante a avaliacao", async () => {
-        const { alertEvaluationService } = await import("../../src/services/alertEvaluationService.js");
         parameterRepositoryMock.findOneBy.mockRejectedValueOnce(new Error("DB Connection Error"));
         
         await alertEvaluationService.evaluate({ id: 1, value: 25, idParameter: 99 } as any);
