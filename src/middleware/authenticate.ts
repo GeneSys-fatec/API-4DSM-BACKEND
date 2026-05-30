@@ -26,7 +26,7 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
             exp: payload.exp as number,
         };
 
-    } catch (error) {
+    } catch (_error) {
         return reply.status(401).send({ error: "Token inválido ou expirado." });
     }
 }

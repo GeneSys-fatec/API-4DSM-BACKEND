@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { WhereExpressionBuilder } from "typeorm";
+import { Brackets } from "typeorm";
 
 const repositoryMock = vi.hoisted(() => ({
   find: vi.fn(),
@@ -50,6 +52,63 @@ describe("ParameterTypeService - Suporte a Tipos de Parâmetro", () => {
     expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("parameterType");
     expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
     expect(result).toEqual([{ id: 2, name: "Pressão" }]);
+  });
+
+  it("deve executar a busca textual com Brackets quando q é informado", async () => {
+    const { ParameterTypeService } = await import("../../src/services/parameterTypeService.js");
+    const service = new ParameterTypeService();
+
+    const whereMock = vi.fn().mockReturnThis();
+    const orWhereMock = vi.fn().mockReturnThis();
+    const bracketQueryBuilderMock = {
+      where: whereMock,
+      orWhere: orWhereMock,
+    };
+
+    const queryBuilderMock = {
+      orderBy: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockImplementation((condition: unknown) => {
+        if (condition instanceof Brackets) {
+          condition.whereFactory(bracketQueryBuilderMock as unknown as WhereExpressionBuilder);
+        }
+
+        return queryBuilderMock;
+      }),
+      getMany: vi.fn().mockResolvedValueOnce([{ id: 4, name: "Temperatura" }]),
+    };
+
+    repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+    const result = await service.findAll({ q: "  Temp  " });
+
+    expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("parameterType");
+    expect(whereMock).toHaveBeenCalledWith(
+      "translate(lower(coalesce(parameterType.name, '')), 'áàãâäéèẽêëíìĩîïóòõôöúùũûüçñýÿ', 'aaaaaeeeeeiiiiiooooouuuuucnyy') LIKE :term",
+      { term: "%temp%" },
+    );
+    expect(orWhereMock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([{ id: 4, name: "Temperatura" }]);
+  });
+
+  it("deve aplicar o filtro de data final na consulta", async () => {
+    const { ParameterTypeService } = await import("../../src/services/parameterTypeService.js");
+    const service = new ParameterTypeService();
+
+    const queryBuilderMock = {
+      orderBy: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getMany: vi.fn().mockResolvedValueOnce([{ id: 3, name: "CO2" }]),
+    };
+
+    repositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
+
+    const result = await service.findAll({ to: new Date("2024-02-01") });
+
+    expect(repositoryMock.createQueryBuilder).toHaveBeenCalledWith("parameterType");
+    expect(queryBuilderMock.andWhere).toHaveBeenCalledWith("parameterType.createdAt <= :to", {
+      to: expect.any(Date),
+    });
+    expect(result).toEqual([{ id: 3, name: "CO2" }]);
   });
 
   it("deve retornar null ao buscar tipo de parâmetro inexistente", async () => {

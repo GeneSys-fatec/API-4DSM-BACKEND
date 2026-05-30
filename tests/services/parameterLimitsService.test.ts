@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ParameterLimitsService } from "../../src/services/parameterLimitsService.js";
 
 const repositoryMock = vi.hoisted(() => ({
   find: vi.fn(),
@@ -23,7 +24,6 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve listar todos os limites de parâmetro ordenados por id", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
     repositoryMock.find.mockResolvedValueOnce([{ id: 1, idTypeParam: 2 }]);
 
@@ -34,7 +34,6 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve buscar limites pelo idTypeParam", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
     repositoryMock.findBy.mockResolvedValueOnce([{ id: 10, idTypeParam: 2 }]);
 
@@ -45,7 +44,6 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve retornar null ao buscar limite inexistente por id", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
 
@@ -56,10 +54,10 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve criar novo limite de parâmetro", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
 
     const createdEntity = { id: 1 };
+    repositoryMock.findBy.mockResolvedValueOnce([]);
     repositoryMock.create.mockReturnValueOnce(createdEntity);
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
@@ -69,6 +67,7 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
       maxExpected: 35,
     });
 
+    expect(repositoryMock.findBy).toHaveBeenCalledWith({ idTypeParam: { id: 3 } });
     expect(repositoryMock.create).toHaveBeenCalledWith({
       idTypeParam: { id: 3 },
       minExpected: 5,
@@ -78,8 +77,29 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     expect(result).toEqual({ id: 1, saved: true });
   });
 
+  it("deve atualizar o limite se já existir um cadastrado para o parâmetro ao tentar criar", async () => {
+    const service = new ParameterLimitsService();
+
+    const existingEntity = { id: 1, idTypeParam: { id: 3 }, minExpected: 0, maxExpected: 10 };
+    repositoryMock.findBy.mockResolvedValueOnce([existingEntity]);
+    repositoryMock.save.mockResolvedValueOnce({ ...existingEntity, minExpected: 5, maxExpected: 35 });
+
+    const result = await service.create({
+      idTypeParam: 3,
+      minExpected: 5,
+      maxExpected: 35,
+    });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 5,
+      maxExpected: 35,
+    });
+    expect(result).toEqual({ id: 1, idTypeParam: { id: 3 }, minExpected: 5, maxExpected: 35 });
+  });
+
   it("deve retornar null ao atualizar limite inexistente", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
 
@@ -90,7 +110,6 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve atualizar e salvar limite existente", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
 
     const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
@@ -113,8 +132,53 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
     });
   });
 
+  it("deve atualizar apenas o limite mínimo quando maxExpected estiver ausente", async () => {
+    const service = new ParameterLimitsService();
+
+    const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
+    repositoryMock.findOneBy.mockResolvedValueOnce(existing);
+    repositoryMock.save.mockResolvedValueOnce({ ...existing, minExpected: 12 });
+
+    const result = await service.update(1, { minExpected: 12 });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 1 },
+      minExpected: 12,
+      maxExpected: 20,
+    });
+    expect(result).toEqual({
+      id: 1,
+      idTypeParam: { id: 1 },
+      minExpected: 12,
+      maxExpected: 20,
+    });
+  });
+
+  it("deve atualizar também o tipo do parâmetro quando o idTypeParam é informado", async () => {
+    const service = new ParameterLimitsService();
+
+    const existing = { id: 1, idTypeParam: { id: 1 }, minExpected: 10, maxExpected: 20 };
+    repositoryMock.findOneBy.mockResolvedValueOnce(existing);
+    repositoryMock.save.mockResolvedValueOnce({ ...existing, idTypeParam: { id: 3 }, minExpected: 8, maxExpected: 18 });
+
+    const result = await service.update(1, { idTypeParam: 3, minExpected: 8, maxExpected: 18 });
+
+    expect(repositoryMock.save).toHaveBeenCalledWith({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 8,
+      maxExpected: 18,
+    });
+    expect(result).toEqual({
+      id: 1,
+      idTypeParam: { id: 3 },
+      minExpected: 8,
+      maxExpected: 18,
+    });
+  });
+
   it("deve retornar false ao excluir limite inexistente", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
 
@@ -125,7 +189,6 @@ describe("ParameterLimitsService - Suporte a Limites de Parâmetro", () => {
   });
 
   it("deve remover limite existente", async () => {
-    const { ParameterLimitsService } = await import("../../src/services/parameterLimitsService.js");
     const service = new ParameterLimitsService();
 
     const existing = { id: 1, idTypeParam: { id: 1 } };
