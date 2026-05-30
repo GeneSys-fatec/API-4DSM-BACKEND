@@ -103,4 +103,20 @@ describe("AuthController", () => {
         expect(replyMock.status).toHaveBeenCalledWith(200);
         expect(replyMock.send).toHaveBeenCalledWith({ message: "Logout realizado com sucesso." });
     });
+
+    // BRANCH: error não é instância de Error no login
+    it("deve retornar 'Unknown error' quando login lança objeto não-Error", async () => {
+        const { AuthController } = await import("../../src/controllers/authController.js");
+        const controller = new AuthController();
+
+        const requestMock = {
+            body: { email: "admin@admin.com", password: "123456" },
+        } as any;
+        serviceMock.login.mockRejectedValueOnce("unexpected string error");
+
+        await controller.login(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Unknown error" });
+    });
 });

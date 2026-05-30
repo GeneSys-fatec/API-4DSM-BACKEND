@@ -11,9 +11,8 @@ export class AuthController {
             const auth = await authService.login({email, password});
 
             return auth
-        }   catch (error: any) {
-            
-            return reply.status(400).send({ error: error.message });
+        }   catch (error) {
+            return reply.status(400).send({ error: error instanceof Error ? error.message : "Unknown error" });
 
         }
     }

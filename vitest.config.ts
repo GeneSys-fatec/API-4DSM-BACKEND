@@ -8,9 +8,24 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
     coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "tests/setup.ts"],
+      provider: 'v8',
+      
+      include: [
+        'src/services/**/*.ts', 
+        'src/controllers/**/*.ts'
+      ],
+      exclude: [
+        'src/**/*.spec.ts', 
+        'src/**/*.test.ts', 
+        'src/**/*.d.ts'
+      ],
+      
+      thresholds: {
+        lines: 1,
+        functions: 1,
+        branches: 1,
+        statements: 1
+      }
     },
   },
   plugins: [

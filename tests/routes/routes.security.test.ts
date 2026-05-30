@@ -5,8 +5,6 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import { routes } from "../../src/routes"; 
-import { authRoutes } from "../../src/routes/authRoutes";
-import { stationRoutes } from "../../src/routes/stationRoutes";
 
 describe("Segurança das Rotas e Acesso Público", () => {
   let app: FastifyInstance;

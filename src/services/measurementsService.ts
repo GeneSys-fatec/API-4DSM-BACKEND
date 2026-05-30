@@ -1,4 +1,5 @@
 import { AppDataSource } from "../data-source.js";
+import { SelectQueryBuilder } from "typeorm";
 import { MeasurementEntity } from "../entities/measurementEntity.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
@@ -34,7 +35,7 @@ export interface AggregationResponse {
 export class DashboardService {
     private readonly measurementRepository = AppDataSource.getRepository(MeasurementEntity);
 
-    private applyFilters(qb: any, filters: DashboardQueryDTO) {
+    private applyFilters(qb: SelectQueryBuilder<MeasurementEntity>, filters: DashboardQueryDTO) {
         if (filters.parameterId) {
             qb.andWhere("parameter.id = :parameterId", { parameterId: filters.parameterId });
         }
@@ -44,21 +45,19 @@ export class DashboardService {
         }
 
         let start = filters.startDate ? new Date(filters.startDate) : null;
-        let end = filters.endDate ? new Date(filters.endDate) : new Date();
+        const end = filters.endDate ? new Date(filters.endDate) : new Date();
 
         if (filters.period) {
             start = new Date();
             if (filters.period === "24h") start.setHours(start.getHours() - 24);
-            if (filters.period === "7d") start.setDate(start.getDate() - 7);
-            if (filters.period === "30d") start.setDate(start.getDate() - 30);
+            else if (filters.period === "7d") start.setDate(start.getDate() - 7);
+            else if (filters.period === "30d") start.setDate(start.getDate() - 30);
         }
 
         if (start) {
             qb.andWhere("measurement.collectedAt >= :start", { start });
         }
-        if (end) {
-            qb.andWhere("measurement.collectedAt <= :end", { end });
-        }
+        qb.andWhere("measurement.collectedAt <= :end", { end });
     }
 
     async getMeasurements(filters: DashboardQueryDTO): Promise<PaginatedResponse<MeasurementEntity>> {

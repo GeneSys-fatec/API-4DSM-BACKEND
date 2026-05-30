@@ -189,4 +189,121 @@ describe("AdministratorController", () => {
         expect(replyMock.status).toHaveBeenCalledWith(400);
         expect(replyMock.send).toHaveBeenCalledWith({ error: "Usuário não encontrado, tente novamente" });
     });
+
+    // BRANCH: error não é instância de Error no create
+    it("deve retornar 'Unknown error' quando create lança objeto não-Error", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            body: { name: "Admin", email: "admin@admin.com", password: "123456" },
+        } as any;
+        serviceMock.create.mockRejectedValueOnce("string error");
+
+        await controller.create(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Unknown error" });
+    });
+
+    // BRANCH: error não é instância de Error no listById
+    it("deve retornar 'Unknown error' quando listById lança objeto não-Error", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 1 },
+        } as any;
+        serviceMock.listById.mockRejectedValueOnce(42);
+
+        await controller.listById(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(404);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Unknown error" });
+    });
+
+    // BRANCH: error não é instância de Error no update
+    it("deve retornar 'Unknown error' quando update lança objeto não-Error", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 1 },
+            body: { newName: "Novo" },
+        } as any;
+        serviceMock.update.mockRejectedValueOnce({ code: 500 });
+
+        await controller.update(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Unknown error" });
+    });
+
+    // BRANCH: error não é instância de Error no delete
+    it("deve retornar 'Unknown error' quando delete lança objeto não-Error", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 1 },
+        } as any;
+        serviceMock.delete.mockRejectedValueOnce(null);
+
+        await controller.delete(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Unknown error" });
+    });
+
+    // BRANCH: list com filtros q, status, from e to
+    it("deve passar filtros q, status, from e to para o service na listagem", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            query: { q: "admin", status: "true", from: "2026-01-01", to: "2026-12-31" },
+        } as any;
+        serviceMock.list.mockResolvedValueOnce([]);
+
+        await controller.list(requestMock, replyMock as any);
+
+        expect(serviceMock.list).toHaveBeenCalledWith(
+            expect.objectContaining({
+                q: "admin",
+                status: true,
+                from: expect.any(Date),
+                to: expect.any(Date),
+            }),
+        );
+        expect(replyMock.send).toHaveBeenCalledWith([]);
+    });
+
+    // BRANCH: list sem query (undefined)
+    it("deve chamar list com objeto vazio quando query é undefined", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {} as any;
+        serviceMock.list.mockResolvedValueOnce([]);
+
+        await controller.list(requestMock, replyMock as any);
+
+        expect(serviceMock.list).toHaveBeenCalledWith({});
+        expect(replyMock.send).toHaveBeenCalledWith([]);
+    });
+
+    // BRANCH: list com apenas q (sem status, from, to)
+    it("deve passar apenas o filtro q quando outros filtros não são fornecidos", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            query: { q: "busca" },
+        } as any;
+        serviceMock.list.mockResolvedValueOnce([{ id: 1 }]);
+
+        await controller.list(requestMock, replyMock as any);
+
+        expect(serviceMock.list).toHaveBeenCalledWith({ q: "busca" });
+    });
 });

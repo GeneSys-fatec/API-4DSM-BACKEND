@@ -7,6 +7,7 @@ import {
 } from "typeorm";
 import { MeasurementEntity } from "./measurementEntity.js";
 import { ParameterEntity } from "./parameterEntity.js";
+import { StationEntity } from "./stationEntity.js";
 
 export type AlertStatus = "active" | "resolved";
 
@@ -23,6 +24,10 @@ export class AlertLogEntity {
     @JoinColumn({ name: "id_measurement" })
     idMeasurement!: MeasurementEntity;
 
+    @ManyToOne(() => StationEntity)
+    @JoinColumn({ name: "id_station" })
+    idStation!: StationEntity;
+
     @Column({ type: "varchar", length: 255, nullable: true })
     titulo?: string;
 
@@ -32,11 +37,20 @@ export class AlertLogEntity {
     @Column({ name: "triggered_value", type: "numeric", precision: 12, scale: 4 })
     triggeredValue!: number;
 
+    @Column({ name: "violated_limit", type: "numeric", precision: 12, scale: 4, nullable: true })
+    violatedLimit!: number;
+
     @Column({ name: "triggered_at", type: "timestamptz", default: () => "CURRENT_TIMESTAMP" })
     triggeredAt!: Date;
 
     @Column({ name: "resolved_at", type: "timestamptz", nullable: true })
     resolvedAt?: Date | null;
+
+    @Column({ name: "is_read", type: "boolean", default: false })
+    isRead!: boolean;
+
+    @Column({ name: "read_at", type: "timestamptz", nullable: true })
+    readAt?: Date | null;
 
     @Column({
         type: "enum",
