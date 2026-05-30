@@ -2,16 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const alertServiceMock = {
     listAlerts: vi.fn(),
-    createAlert: vi.fn(),
-    updateAlert: vi.fn(),
     deleteAlert: vi.fn(),
     findAlertById: vi.fn(),
     evaluateMeasurement: vi.fn(),
+    markAsRead: vi.fn(),
+    markAllAsRead: vi.fn(),
+    clearReadAlerts: vi.fn(),
 };
 
 vi.mock("../../src/services/alertService.js", () => {
     return {
         alertService: alertServiceMock,
+        alertNotificationEmitter: {
+            on: vi.fn(),
+            off: vi.fn(),
+        },
     };
 });
 
@@ -32,8 +37,8 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([
-            {
+        alertServiceMock.listAlerts.mockResolvedValueOnce({
+            data: [{
                 id: 1,
                 idParameter: { id: 5 },
                 idMeasurement: { id: 99 },
@@ -41,8 +46,8 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
                 triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
                 texto: "Temperatura alta",
                 status: "active",
-            },
-        ]);
+            }], total: 1, page: 1, limit: 1000, totalPages: 1
+        });
 
         await alertController.list({ query: {} } as any, reply);
 
@@ -54,7 +59,7 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         const request = {
             query: { stationId: "1", status: "active", from: "2026-01-01" },
@@ -69,78 +74,7 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
                 from: expect.any(Date),
             })
         );
-        expect(reply.send).toHaveBeenCalledWith([]);
-    });
-
-    it("deve validar campos obrigatórios no cadastro", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        await alertController.create(
-            {
-                body: {
-                    parameterId: 1,
-                    measuredValue: undefined,
-                    occurredAt: "",
-                    description: "",
-                },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(400);
-        expect(reply.send).toHaveBeenCalledWith({
-            message: "Fields 'parameterId', 'measuredValue', 'occurredAt' and 'description' are required",
-        });
-    });
-
-    it("deve criar alerta e retornar 201", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.createAlert.mockResolvedValueOnce({ id: 10 });
-        alertServiceMock.findAlertById.mockResolvedValueOnce({
-            id: 10,
-            idParameter: { id: 1 },
-            idMeasurement: { id: 11 },
-            triggeredValue: 40,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Temperatura alta",
-            status: "active",
-        });
-
-        await alertController.create(
-            {
-                body: {
-                    parameterId: 1,
-                    measuredValue: 40,
-                    occurredAt: "2026-03-28T10:00:00.000Z",
-                    description: "Temperatura alta",
-                },
-            } as any,
-            reply,
-        );
-
-        expect(alertServiceMock.createAlert).toHaveBeenCalled();
-        expect(reply.status).toHaveBeenCalledWith(201);
-    });
-
-    it("deve retornar 404 ao tentar atualizar alerta inexistente", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.updateAlert.mockResolvedValueOnce(null);
-
-        await alertController.update(
-            {
-                params: { id: "999" },
-                body: { description: "Atualizado" },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(404);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Alert not found" });
+        expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ data: [] }));
     });
 
     it("deve remover alerta existente", async () => {
@@ -194,138 +128,6 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         );
     });
 
-    it("deve retornar 500 quando alerta criado não é encontrado após criação", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.createAlert.mockResolvedValueOnce({ id: 20 });
-        alertServiceMock.findAlertById.mockResolvedValueOnce(null);
-
-        await alertController.create(
-            {
-                body: {
-                    parameterId: 1,
-                    measuredValue: 30,
-                    occurredAt: "2026-03-28T10:00:00.000Z",
-                    description: "Teste criação",
-                },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(500);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Alert created but not found" });
-    });
-
-    it("deve retornar 400 quando createAlert lança exceção", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.createAlert.mockRejectedValueOnce(new Error("Parameter not found"));
-
-        await alertController.create(
-            {
-                body: {
-                    parameterId: 999,
-                    measuredValue: 30,
-                    occurredAt: "2026-03-28T10:00:00.000Z",
-                    description: "Teste erro",
-                },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(400);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Parameter not found" });
-    });
-
-    it("deve retornar 400 quando id do update não é numérico", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        await alertController.update(
-            {
-                params: { id: "abc" },
-                body: { description: "Teste" },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(400);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Invalid alert id" });
-    });
-
-    it("deve atualizar alerta com sucesso e retornar dados mapeados", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        const updatedAlert = {
-            id: 5,
-            idParameter: { id: 2 },
-            idMeasurement: { id: 50 },
-            triggeredValue: 35,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Atualizado",
-            status: "resolved",
-        };
-
-        alertServiceMock.updateAlert.mockResolvedValueOnce({ id: 5 });
-        alertServiceMock.findAlertById.mockResolvedValueOnce(updatedAlert);
-
-        await alertController.update(
-            {
-                params: { id: "5" },
-                body: { description: "Atualizado", status: "resolved" },
-            } as any,
-            reply,
-        );
-
-        expect(reply.send).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 5,
-                parameterId: 2,
-                status: "resolved",
-            }),
-        );
-    });
-
-    it("deve retornar 500 quando findAlertById retorna null após update", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.updateAlert.mockResolvedValueOnce({ id: 5 });
-        alertServiceMock.findAlertById.mockResolvedValueOnce(null);
-
-        await alertController.update(
-            {
-                params: { id: "5" },
-                body: { description: "Teste" },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(500);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Updated alert not found" });
-    });
-
-    it("deve retornar 400 quando updateAlert lança exceção", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        alertServiceMock.updateAlert.mockRejectedValueOnce(new Error("Invalid occurredAt"));
-
-        await alertController.update(
-            {
-                params: { id: "5" },
-                body: { occurredAt: "invalid-date" },
-            } as any,
-            reply,
-        );
-
-        expect(reply.status).toHaveBeenCalledWith(400);
-        expect(reply.send).toHaveBeenCalledWith({ message: "Invalid occurredAt" });
-    });
-
     it("deve retornar 400 quando id do delete não é numérico", async () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
@@ -375,6 +177,18 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         });
     });
 
+    it("deve retornar 400 quando request.body é undefined no evaluate", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+
+        await alertController.evaluate({} as any, reply);
+
+        expect(reply.status).toHaveBeenCalledWith(400);
+        expect(reply.send).toHaveBeenCalledWith({
+            message: "Fields 'parameterId', 'measuredValue' and 'occurredAt' are required",
+        });
+    });
+
     it("deve retornar 400 quando evaluateMeasurement lança exceção", async () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
@@ -398,13 +212,34 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         expect(reply.send).toHaveBeenCalledWith({ message: "Parameter not found" });
     });
 
+    it("deve retornar 400 e Unknown error se evaluateMeasurement lançar exceção sem message", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+
+        alertServiceMock.evaluateMeasurement.mockRejectedValueOnce({});
+
+        await alertController.evaluate(
+            {
+                body: {
+                    parameterId: 999,
+                    measuredValue: 50,
+                    occurredAt: "2026-03-28T10:00:00.000Z",
+                },
+            } as any,
+            reply,
+        );
+
+        expect(reply.status).toHaveBeenCalledWith(400);
+        expect(reply.send).toHaveBeenCalledWith({ message: "Unknown error" });
+    });
+
     // BRANCH: mapAlertResponse com titulo (quando texto é null/undefined)
     it("deve usar titulo como fallback na description quando texto é null", async () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([
-            {
+        alertServiceMock.listAlerts.mockResolvedValueOnce({
+            data: [{
                 id: 1,
                 idParameter: { id: 5 },
                 idMeasurement: { id: 99 },
@@ -413,16 +248,16 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
                 texto: null,
                 titulo: "Alerta de Temperatura",
                 status: "active",
-            },
-        ]);
+            }], total: 1, page: 1, limit: 1000, totalPages: 1
+        });
 
         await alertController.list({ query: {} } as any, reply);
 
-        expect(reply.send).toHaveBeenCalledWith([
+        expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ data: [
             expect.objectContaining({
                 description: "Alerta de Temperatura",
             }),
-        ]);
+        ]}));
     });
 
     // BRANCH: mapAlertResponse com texto e titulo ambos null → fallback ""
@@ -430,8 +265,8 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([
-            {
+        alertServiceMock.listAlerts.mockResolvedValueOnce({
+            data: [{
                 id: 2,
                 idParameter: { id: 6 },
                 idMeasurement: { id: 100 },
@@ -440,16 +275,16 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
                 texto: null,
                 titulo: null,
                 status: "active",
-            },
-        ]);
+            }], total: 1, page: 1, limit: 1000, totalPages: 1
+        });
 
         await alertController.list({ query: {} } as any, reply);
 
-        expect(reply.send).toHaveBeenCalledWith([
+        expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ data: [
             expect.objectContaining({
                 description: "",
             }),
-        ]);
+        ]}));
     });
 
     // BRANCH: list com filtros individuais: parameterId, idTypeParam, user, from, to
@@ -457,7 +292,7 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         const request = {
             query: {
@@ -487,53 +322,11 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         await alertController.list({ query: undefined } as any, reply);
 
         expect(alertServiceMock.listAlerts).toHaveBeenCalledWith({});
-    });
-
-    // BRANCH: update com todos os campos opcionais do body presentes
-    it("deve construir payload com todos os campos opcionais no update", async () => {
-        const { alertController } = await import("../../src/controllers/alertController.js");
-        const reply = makeReply();
-
-        const updatedAlert = {
-            id: 5,
-            idParameter: { id: 2 },
-            idMeasurement: { id: 50 },
-            triggeredValue: 45,
-            triggeredAt: new Date("2026-04-01T10:00:00.000Z"),
-            texto: "Novo texto",
-            status: "resolved",
-        };
-
-        alertServiceMock.updateAlert.mockResolvedValueOnce({ id: 5 });
-        alertServiceMock.findAlertById.mockResolvedValueOnce(updatedAlert);
-
-        await alertController.update(
-            {
-                params: { id: "5" },
-                body: {
-                    parameterId: 2,
-                    measuredValue: 45,
-                    occurredAt: "2026-04-01T10:00:00.000Z",
-                    description: "Novo texto",
-                    status: "resolved",
-                },
-            } as any,
-            reply,
-        );
-
-        expect(alertServiceMock.updateAlert).toHaveBeenCalledWith(5, {
-            parameterId: 2,
-            measuredValue: 45,
-            occurredAt: "2026-04-01T10:00:00.000Z",
-            description: "Novo texto",
-            status: "resolved",
-        });
-        expect(reply.send).toHaveBeenCalled();
     });
 
     // BRANCH: list com apenas user como filtro
@@ -541,7 +334,7 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         await alertController.list(
             { query: { user: "operador" } } as any,
@@ -555,12 +348,11 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         );
     });
 
-    // BRANCH: list com filtro q para cobrir linha 56
     it("deve passar filtro q na listagem de alertas", async () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         await alertController.list(
             { query: { q: "temperatura" } } as any,
@@ -579,7 +371,7 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
         const { alertController } = await import("../../src/controllers/alertController.js");
         const reply = makeReply();
 
-        alertServiceMock.listAlerts.mockResolvedValueOnce([]);
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
 
         await alertController.list(
             {
@@ -610,5 +402,244 @@ describe("AlertController - Suporte a Alertas Climáticos", () => {
             }),
         );
     });
-});
 
+    it("deve passar isRead, page e limit na listagem de alertas", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 2, limit: 20, totalPages: 0 });
+
+        await alertController.list(
+            {
+                query: {
+                    isRead: "true",
+                    page: "2",
+                    limit: "20",
+                },
+            } as any,
+            reply,
+        );
+
+        expect(alertServiceMock.listAlerts).toHaveBeenCalledWith(
+            expect.objectContaining({
+                isRead: true,
+                page: 2,
+                limit: 20,
+            }),
+        );
+
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 1000, totalPages: 0 });
+        await alertController.list({ query: { isRead: true } } as any, reply);
+        expect(alertServiceMock.listAlerts).toHaveBeenCalledWith(expect.objectContaining({ isRead: true }));
+    });
+
+    it("deve lançar erro se ocorrer falha ao listar alertas", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.listAlerts.mockRejectedValueOnce(new Error("DB Error"));
+
+        await expect(alertController.list({ query: {} } as any, reply)).rejects.toThrow("DB Error");
+    });
+
+    it("deve marcar um alerta como lido", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAsRead.mockResolvedValueOnce(true);
+
+        await alertController.markAsRead({ params: { id: "1" } } as any, reply);
+
+        expect(alertServiceMock.markAsRead).toHaveBeenCalledWith(1);
+        expect(reply.status).toHaveBeenCalledWith(204);
+    });
+
+    it("deve retornar 404 quando não encontrar o alerta para marcar como lido", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAsRead.mockResolvedValueOnce(false);
+
+        await alertController.markAsRead({ params: { id: "99" } } as any, reply);
+
+        expect(reply.status).toHaveBeenCalledWith(404);
+    });
+
+    it("deve retornar 500 com mensagem padrão se ocorrer erro sem message ao marcar todos os alertas como lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAllAsRead.mockRejectedValueOnce({}); 
+
+        await alertController.markAllAsRead({} as any, reply);
+        expect(reply.status).toHaveBeenCalledWith(500);
+    });
+
+    it("deve retornar 400 se o id for inválido em markAsRead", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+
+        await alertController.markAsRead({ params: { id: "abc" } } as any, reply);
+
+        expect(reply.status).toHaveBeenCalledWith(400);
+    });
+
+    it("deve lançar erro se ocorrer falha ao marcar alerta como lido", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAsRead.mockRejectedValueOnce(new Error("DB Error"));
+
+        await expect(alertController.markAsRead({ params: { id: "1" } } as any, reply)).rejects.toThrow("DB Error");
+    });
+
+    it("deve marcar todos os alertas como lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAllAsRead.mockResolvedValueOnce(true);
+
+        await alertController.markAllAsRead({} as any, reply);
+
+        expect(alertServiceMock.markAllAsRead).toHaveBeenCalled();
+        expect(reply.send).toHaveBeenCalled();
+    });
+
+    it("deve retornar 500 se ocorrer erro ao marcar todos os alertas como lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.markAllAsRead.mockRejectedValueOnce(new Error("DB Error"));
+
+        await alertController.markAllAsRead({} as any, reply);
+        expect(reply.status).toHaveBeenCalledWith(500);
+    });
+
+    it("deve limpar alertas lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.clearReadAlerts.mockResolvedValueOnce(3);
+
+        const clearMethod = (alertController as any).clear || (alertController as any).clearRead || (alertController as any).clearReadAlerts;
+        await clearMethod.call(alertController, {} as any, reply);
+
+        expect(alertServiceMock.clearReadAlerts).toHaveBeenCalled();
+        expect(reply.send).toHaveBeenCalled();
+    });
+
+    it("deve retornar 500 com mensagem padrão se ocorrer erro sem message ao limpar alertas lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.clearReadAlerts.mockRejectedValueOnce({});
+
+        const clearMethod = (alertController as any).clear || (alertController as any).clearRead || (alertController as any).clearReadAlerts;
+        await clearMethod.call(alertController, {} as any, reply);
+        expect(reply.status).toHaveBeenCalledWith(500);
+    });
+
+    it("deve retornar 500 se ocorrer erro ao limpar alertas lidos", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.clearReadAlerts.mockRejectedValueOnce(new Error("DB Error"));
+
+        const clearMethod = (alertController as any).clear || (alertController as any).clearRead || (alertController as any).clearReadAlerts;
+        await clearMethod.call(alertController, {} as any, reply);
+        expect(reply.status).toHaveBeenCalledWith(500);
+    });
+
+    it("deve lançar erro se ocorrer falha ao deletar alerta", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        alertServiceMock.deleteAlert.mockRejectedValueOnce(new Error("DB Error"));
+
+        await expect(alertController.delete({ params: { id: "10" } } as any, reply)).rejects.toThrow("DB Error");
+    });
+
+    it("deve gerenciar conexões SSE na rota stream e fechar corretamente", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const { alertNotificationEmitter } = await import("../../src/services/alertService.js");
+        const reply = makeReply();
+        
+        reply.raw = {
+            writeHead: vi.fn(),
+            write: vi.fn(),
+        };
+        reply.hijack = vi.fn();
+
+        let closeCallback: any;
+        const request = {
+            raw: {
+                on: vi.fn((event, cb) => {
+                    if (event === "close") closeCallback = cb;
+                }),
+            },
+        };
+
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [] });
+
+        await alertController.stream(request as any, reply);
+
+        expect(reply.raw.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
+            "Content-Type": "text/event-stream"
+        }));
+        expect(reply.hijack).toHaveBeenCalled();
+        expect(alertNotificationEmitter.on).toHaveBeenCalledWith("alertTriggered", expect.any(Function));
+
+        closeCallback();
+        expect(alertNotificationEmitter.off).toHaveBeenCalledWith("alertTriggered", expect.any(Function));
+    });
+
+    it("deve escrever alertas não lidos ao inicializar o stream", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        reply.raw = { writeHead: vi.fn(), write: vi.fn() };
+        reply.hijack = vi.fn();
+        const request = { raw: { on: vi.fn() } };
+
+        alertServiceMock.listAlerts.mockResolvedValueOnce({
+            data: [{ id: 1, isRead: false }]
+        });
+
+        await alertController.stream(request as any, reply);
+        expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining("data:"));
+    });
+
+    it("deve ignorar erro ao buscar alertas não lidos na inicialização do stream", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const reply = makeReply();
+        reply.raw = { writeHead: vi.fn(), write: vi.fn() };
+        reply.hijack = vi.fn();
+        const request = { raw: { on: vi.fn() } };
+        
+        alertServiceMock.listAlerts.mockRejectedValueOnce(new Error("Erro interno"));
+        
+        await alertController.stream(request as any, reply);
+
+        expect(reply.raw.write).not.toHaveBeenCalled();
+        expect(reply.hijack).toHaveBeenCalled();
+    });
+
+    it("deve enviar evento SSE quando alertTriggered for emitido", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const { alertNotificationEmitter } = await import("../../src/services/alertService.js");
+        const reply = makeReply();
+        reply.raw = { writeHead: vi.fn(), write: vi.fn() };
+        reply.hijack = vi.fn();
+
+        const request = { raw: { on: vi.fn() } };
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [] });
+        await alertController.stream(request as any, reply);
+
+        const emitCallback = (alertNotificationEmitter.on as any).mock.calls[0][1];
+        emitCallback({ id: 1, texto: "Novo alerta" });
+
+        expect(reply.raw.write).toHaveBeenCalledWith(expect.stringContaining("Novo alerta"));
+    });
+
+    it("deve escrever o evento recebido com stationName diretamente na rota stream", async () => {
+        const { alertController } = await import("../../src/controllers/alertController.js");
+        const { alertNotificationEmitter } = await import("../../src/services/alertService.js");
+        const reply = makeReply();
+        reply.raw = { writeHead: vi.fn(), write: vi.fn() };
+        reply.hijack = vi.fn();
+        const request = { raw: { on: vi.fn() } };
+        alertServiceMock.listAlerts.mockResolvedValueOnce({ data: [] });
+        await alertController.stream(request as any, reply);
+        const emitCallback = (alertNotificationEmitter.on as any).mock.calls[0][1];
+        emitCallback({ id: 2, stationName: "Estacao", texto: "Alerta SSE" });
+        expect(reply.raw.write).toHaveBeenCalledWith(`data: {"id":2,"stationName":"Estacao","texto":"Alerta SSE"}\n\n`);
+    });
+});
