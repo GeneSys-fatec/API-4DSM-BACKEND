@@ -87,7 +87,7 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   it("Critério: O administrador deve conseguir cadastrar uma estação - cria com valores default", async () => {
     const service = new StationService();
 
-    const createdEntity = { id: 1 };
+    const createdEntity = { id: 9 };
     repositoryMock.create.mockReturnValueOnce(createdEntity);
     repositoryMock.save.mockResolvedValueOnce({ ...createdEntity, saved: true });
 
