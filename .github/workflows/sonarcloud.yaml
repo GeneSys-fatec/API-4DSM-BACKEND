@@ -2,10 +2,9 @@ name: CI e Qualidade de Código (SonarCloud)
 
 on:
   pull_request:
-    branches:
-      - master
-      - develop
-      - release
+    branches: [ "develop", "release", "master" ]
+  push:
+    branches: [ "develop", "release", "master" ]
 
 jobs:
   sonarcloud:
@@ -16,7 +15,7 @@ jobs:
       - name: Clonar o repositório
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Obrigatório para o SonarCloud analisar o histórico
+          fetch-depth: 0 
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -30,7 +29,7 @@ jobs:
         run: npm run lint
 
       - name: Executar Testes e Gerar Cobertura
-        # É crucial que seu script de teste no package.json gere a pasta de coverage
+
         run: npm run test:coverage 
 
       - name: Análise do SonarCloud
