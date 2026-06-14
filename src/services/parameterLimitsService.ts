@@ -28,6 +28,14 @@ export class ParameterLimitsService {
 	}
 
 	async create(data: CreateParameterLimitsInput): Promise<parameterLimitsEntity> {
+		const [existingLimit] = await this.findByTypeParam(data.idTypeParam);
+
+		if (existingLimit) {
+			existingLimit.minExpected = data.minExpected;
+			existingLimit.maxExpected = data.maxExpected;
+			return this.repository.save(existingLimit);
+		}
+
 		const parameterLimits = this.repository.create({
 			idTypeParam: { id: data.idTypeParam } as parameterTypeEntity,
 			minExpected: data.minExpected,

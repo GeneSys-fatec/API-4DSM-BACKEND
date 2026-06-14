@@ -7,21 +7,9 @@ import { parameterTypeEntity } from "../entities/parameterTypeEntity.js";
 import { StationEntity } from "../entities/stationEntity.js";
 import { Brackets } from "typeorm";
 import { normalizeSearchTerm, unaccentedSql } from "../utils/textSearch.js";
+import { EventEmitter } from "events";
 
-export interface CreateAlertInput {
-    parameterId: number;
-    measuredValue: number;
-    occurredAt: string;
-    description: string;
-}
-
-export interface UpdateAlertInput {
-    parameterId?: number;
-    measuredValue?: number;
-    occurredAt?: string;
-    description?: string;
-    status?: "active" | "resolved";
-}
+export const alertNotificationEmitter = new EventEmitter();
 
 export interface EvaluateMeasurementInput {
     parameterId: number;
@@ -38,6 +26,17 @@ export interface AlertListFilters {
     q?: string;
     from?: Date;
     to?: Date;
+    isRead?: boolean;
+    page?: number;
+    limit?: number;
+}
+
+export interface PaginatedAlertResponse {
+    data: AlertLogEntity[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
 }
 
 export class AlertService {
@@ -123,9 +122,13 @@ export class AlertService {
         return parameter;
     }
 
-    async listAlerts(filters: AlertListFilters = {}): Promise<AlertLogEntity[]> {
+    async listAlerts(filters: AlertListFilters = {}): Promise<PaginatedAlertResponse> {
         const searchTerm = normalizeSearchTerm(filters.q ?? "");
         const userSearchTerm = normalizeSearchTerm(filters.user ?? "");
+
+        const page = filters.page || 1;
+        const limit = filters.limit || 1000;
+        const skip = (page - 1) * limit;
 
         const hasFilters = Boolean(
             filters.stationId ||
@@ -135,11 +138,12 @@ export class AlertService {
             userSearchTerm ||
             searchTerm ||
             filters.from ||
-            filters.to,
+            filters.to ||
+            filters.isRead !== undefined
         );
 
         if (!hasFilters) {
-            return this.alertRepository.find({
+            const [data, total] = await this.alertRepository.findAndCount({
                 relations: {
                     idParameter: true,
                     idMeasurement: true,
@@ -147,7 +151,16 @@ export class AlertService {
                 order: {
                     triggeredAt: "DESC",
                 },
+                skip,
+                take: limit
             });
+            return {
+                data,
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            };
         }
 
         const queryBuilder = this.alertRepository
@@ -156,7 +169,9 @@ export class AlertService {
             .leftJoinAndSelect("alert.idMeasurement", "measurement")
             .leftJoin(StationEntity, "station", "station.id = parameter.idStation")
             .leftJoin(parameterTypeEntity, "parameterType", "parameterType.id = parameter.idTypeParam")
-            .orderBy("alert.triggeredAt", "DESC");
+            .orderBy("alert.triggeredAt", "DESC")
+            .skip(skip)
+            .take(limit);
 
         if (filters.stationId) {
             queryBuilder.andWhere("parameter.idStation = :stationId", {
@@ -221,7 +236,14 @@ export class AlertService {
             });
         }
 
-        return queryBuilder.getMany();
+        if (filters.isRead !== undefined) {
+            queryBuilder.andWhere("alert.isRead = :isRead", {
+                isRead: filters.isRead,
+            });
+        }
+
+        const [data, total] = await queryBuilder.getManyAndCount();
+        return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
     }
 
     async findAlertById(id: number): Promise<AlertLogEntity | null> {
@@ -234,68 +256,28 @@ export class AlertService {
         });
     }
 
-    async createAlert(data: CreateAlertInput): Promise<AlertLogEntity> {
-        const parameter = await this.findParameterById(data.parameterId);
-        const occurredAt = this.toDate(data.occurredAt);
-
-        const measurement = this.measurementRepository.create({
-            idParameter: parameter,
-            rawValue: data.measuredValue,
-            value: data.measuredValue,
-            collectedAt: occurredAt,
-        });
-
-        const savedMeasurement = await this.measurementRepository.save(measurement);
-
-        const alert = this.alertRepository.create({
-            idParameter: parameter,
-            idMeasurement: savedMeasurement,
-            triggeredValue: data.measuredValue,
-            triggeredAt: occurredAt,
-            titulo: "Alerta manual",
-            texto: data.description,
-            status: "active",
-            resolvedAt: null,
-        });
-
-        return this.alertRepository.save(alert);
-    }
-
-    async updateAlert(id: number, data: UpdateAlertInput): Promise<AlertLogEntity | null> {
+    async markAsRead(id: number): Promise<boolean> {
         const alert = await this.findAlertById(id);
         if (!alert) {
-            return null;
+            return false;
         }
+        alert.isRead = true;
+        alert.readAt = new Date();
+        await this.alertRepository.save(alert);
+        return true;
+    }
 
-        if (data.parameterId !== undefined) {
-            const parameter = await this.findParameterById(data.parameterId);
-            alert.idParameter = parameter;
-            alert.idMeasurement.idParameter = parameter;
-        }
+    async markAllAsRead(): Promise<number> {
+        const result = await this.alertRepository.update(
+            { isRead: false },
+            { isRead: true, readAt: new Date() }
+        );
+        return result.affected ?? 0;
+    }
 
-        if (data.occurredAt !== undefined) {
-            const occurredAt = this.toDate(data.occurredAt);
-            alert.triggeredAt = occurredAt;
-            alert.idMeasurement.collectedAt = occurredAt;
-        }
-
-        if (data.measuredValue !== undefined) {
-            alert.triggeredValue = data.measuredValue;
-            alert.idMeasurement.rawValue = data.measuredValue;
-            alert.idMeasurement.value = data.measuredValue;
-        }
-
-        if (data.description !== undefined) {
-            alert.texto = data.description;
-        }
-
-        if (data.status !== undefined) {
-            alert.status = data.status;
-            alert.resolvedAt = data.status === "resolved" ? new Date() : null;
-        }
-
-        await this.measurementRepository.save(alert.idMeasurement);
-        return this.alertRepository.save(alert);
+    async clearReadAlerts(): Promise<number> {
+        const result = await this.alertRepository.delete({ isRead: true });
+        return result.affected ?? 0;
     }
 
     async deleteAlert(id: number): Promise<boolean> {
@@ -312,8 +294,11 @@ export class AlertService {
         const parameter = await this.findParameterById(data.parameterId);
         const occurredAt = this.toDate(data.occurredAt);
 
+        const typeParamId = typeof parameter.idTypeParam === "number" ? parameter.idTypeParam : (parameter.idTypeParam as unknown as { id: number })?.id;
+        const stationId = typeof parameter.idStation === "number" ? parameter.idStation : (parameter.idStation as unknown as { id: number })?.id;
+
         const measurement = this.measurementRepository.create({
-            idParameter: parameter,
+            idParameter: { id: parameter.id } as ParameterEntity,
             rawValue: data.measuredValue,
             value: data.measuredValue,
             collectedAt: occurredAt,
@@ -321,23 +306,35 @@ export class AlertService {
 
         const savedMeasurement = await this.measurementRepository.save(measurement);
 
-        const limits = await this.parameterLimitsRepository.findOneBy({
-            idTypeParam: { id: parameter.idTypeParam } as parameterTypeEntity,
+        let limits = await this.parameterLimitsRepository.findOne({
+            where: { idTypeParam: { id: typeParamId } as parameterTypeEntity },
+            order: { id: "DESC" }
         });
+
+        if (!limits) {
+            const allLimits = await this.parameterLimitsRepository.find({
+                where: { idTypeParam: { id: typeParamId } as parameterTypeEntity }
+            });
+            if (allLimits.length > 0) limits = allLimits[allLimits.length - 1] ?? null;
+        }
 
         if (!limits) {
             return [];
         }
 
-        const isBelowMin = data.measuredValue < Number(limits.minExpected);
-        const isAboveMax = data.measuredValue > Number(limits.maxExpected);
+        const measuredValueNum = Number(data.measuredValue);
+        const minExpected = Number(limits.minExpected);
+        const maxExpected = Number(limits.maxExpected);
+
+        const isBelowMin = measuredValueNum < minExpected;
+        const isAboveMax = measuredValueNum > maxExpected;
 
         if (!isBelowMin && !isAboveMax) {
             return [];
         }
 
-        const parameterType = await this.parameterTypeRepository.findOneBy({ id: parameter.idTypeParam });
-        const appliedLimit = isBelowMin ? Number(limits.minExpected) : Number(limits.maxExpected);
+        const parameterType = await this.parameterTypeRepository.findOneBy({ id: typeParamId });
+        const appliedLimit = isBelowMin ? minExpected : maxExpected;
         const message = this.buildAutomaticMessage(
             parameterType,
             isBelowMin,
@@ -345,18 +342,48 @@ export class AlertService {
             appliedLimit,
         );
 
+        const existingAlert = await this.alertRepository.findOne({
+            where: {
+                idParameter: { id: parameter.id },
+                status: "active",
+            },
+            relations: ["idParameter", "idMeasurement"]
+        });
+
+        if (existingAlert) {
+            existingAlert.idMeasurement = { id: savedMeasurement.id } as MeasurementEntity;
+            existingAlert.triggeredValue = measuredValueNum;
+            existingAlert.violatedLimit = appliedLimit;
+            existingAlert.triggeredAt = occurredAt;
+            existingAlert.titulo = message.title;
+            existingAlert.texto = message.description;
+            existingAlert.isRead = false;
+
+            const updatedAlert = await this.alertRepository.save(existingAlert);
+            
+            if (!updatedAlert.isRead) {
+                alertNotificationEmitter.emit("alertTriggered", updatedAlert);
+            }
+            
+            return [updatedAlert];
+        }
+
         const alert = this.alertRepository.create({
-            idParameter: parameter,
-            idMeasurement: savedMeasurement,
-            triggeredValue: data.measuredValue,
+            idParameter: { id: parameter.id } as ParameterEntity,
+            idMeasurement: { id: savedMeasurement.id } as MeasurementEntity,
+            idStation: { id: stationId } as StationEntity,
+            triggeredValue: measuredValueNum,
+            violatedLimit: appliedLimit,
             triggeredAt: occurredAt,
             titulo: message.title,
             texto: message.description,
             status: "active",
+            isRead: false,
             resolvedAt: null,
         });
 
         const createdAlert = await this.alertRepository.save(alert);
+        alertNotificationEmitter.emit("alertTriggered", createdAlert);
         return [createdAlert];
     }
 }
