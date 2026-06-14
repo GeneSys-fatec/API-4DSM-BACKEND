@@ -58,7 +58,7 @@ const start = async () => {
         await app.listen({ port: 3333, host: '0.0.0.0' })
         setApplicationHealth(true);
     }
-    catch (err) {
+    catch (_err) {
         setApplicationHealth(false);
         process.exit(1)
     }

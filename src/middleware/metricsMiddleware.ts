@@ -10,7 +10,7 @@ const requestStartTimes = new WeakMap<FastifyRequest, number>();
 
 export async function metricsMiddleware(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> {
   const method = request.method;
   const route = request.url.split("?")[0] || "/"; 
