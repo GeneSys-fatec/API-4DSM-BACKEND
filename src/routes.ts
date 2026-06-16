@@ -10,13 +10,15 @@ import { stationController } from "./controllers/stationController.js";
 import { parameterController } from "./controllers/parameterController.js";
 import { parameterTypeController } from "./controllers/parameterTypeController.js";
 import { alertController } from "./controllers/alertController.js";
-import { alertRoutes } from "./routes/alertRoutes.js";
+import { alertRoutes, publicAlertRoutes } from "./routes/alertRoutes.js";
 import { measurementsRoutes } from "./routes/measurementsRoutes.js";
+import { metricsRoutes } from "./routes/metricsRoutes.js";
 
 export async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions) {
     fastify.get("/healthcheck", async (_request: FastifyRequest, _reply: FastifyReply) => {
         return { status: "ok" };
     });
+    fastify.register(metricsRoutes);
 
     fastify.register(authRoutes, {prefix: "/auth"});
     
@@ -25,6 +27,8 @@ export async function routes(fastify: FastifyInstance, _options: FastifyPluginOp
     fastify.get('/parameter-types/public', parameterTypeController.list);
     fastify.get('/parameters/public/station/:idStation', parameterController.findByStation);
     fastify.get('/alerts/public', alertController.list);
+
+    fastify.register(publicAlertRoutes, { prefix: "/alerts" });
 
     fastify.register(measurementsRoutes, { prefix: "/measurements" });
 

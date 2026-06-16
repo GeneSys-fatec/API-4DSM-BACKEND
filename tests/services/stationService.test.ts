@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { StationService } from "../../src/services/stationService.js";
 
 vi.mock("typeorm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("typeorm")>();
@@ -40,7 +41,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: Todas as estações cadastradas devem ser listadas - retorna todas as estações ordenadas", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.find.mockResolvedValueOnce([
@@ -57,7 +57,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: Deve filtrar estações diretamente no banco quando houver filtros", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const queryBuilderMock = {
@@ -76,7 +75,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O administrador deve conseguir cadastrar uma estação - retorna null se não encontra", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
@@ -87,7 +85,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O administrador deve conseguir cadastrar uma estação - cria com valores default", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const createdEntity = { id: 1 };
@@ -118,7 +115,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve permitir editar e remover estações - retorna null se não encontra", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
@@ -130,7 +126,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve permitir editar e remover estações - atualiza e salva", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const existing = { id: 1, name: "Estação Antigo" };
@@ -144,7 +139,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve permitir editar e remover estações - retorna false se não encontra para deletar", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.findOneBy.mockResolvedValueOnce(null);
@@ -156,7 +150,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve permitir editar e remover estações - remove estação existente", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const existing = { id: 1, name: "Estação para remover" };
@@ -170,7 +163,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve conseguir buscar pelo nome e pelo endereço", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.findOneBy.mockResolvedValueOnce({ id: 1, name: "Estação Teste" });
@@ -183,7 +175,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve buscar estações otimizadas para o mapa", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const mapQueryBuilderMock = {
@@ -201,7 +192,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: Deve cobrir as ramificações de filtro complexo no findAll", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const queryBuilderMock = {
@@ -223,7 +213,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: O sistema deve adotar fallback para status vazios e isActive no create", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.find.mockResolvedValueOnce([]);
@@ -248,7 +237,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("Critério: Deve garantir a execução isolada de status e to no query builder", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     const queryBuilderMock = {
@@ -267,7 +255,6 @@ describe("StationService - Critérios de Aceitação: CRUD de Estações", () =>
   });
 
   it("V8 Forcer: deve executar saídas isoladas do QueryBuilder (Linhas 61 e 91)", async () => {
-    const { StationService } = await import("../../src/services/stationService.js");
     const service = new StationService();
 
     repositoryMock.find.mockResolvedValueOnce([]);

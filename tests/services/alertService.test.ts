@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AlertService } from "../../src/services/alertService.js";
 
 vi.mock("typeorm", async (importOriginal) => {
     const actual = await importOriginal<typeof import("typeorm")>();
@@ -18,11 +19,14 @@ vi.mock("typeorm", async (importOriginal) => {
 
 const alertRepositoryMock = vi.hoisted(() => ({
     find: vi.fn(),
+    findAndCount: vi.fn(),
     findOne: vi.fn(),
     createQueryBuilder: vi.fn(),
     create: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
 }));
 
 const measurementRepositoryMock = vi.hoisted(() => ({
@@ -36,6 +40,8 @@ const parameterRepositoryMock = vi.hoisted(() => ({
 
 const parameterLimitsRepositoryMock = vi.hoisted(() => ({
     findOneBy: vi.fn(),
+    findOne: vi.fn(),
+    find: vi.fn(),
 }));
 
 const parameterTypeRepositoryMock = vi.hoisted(() => ({
@@ -62,66 +68,41 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         vi.clearAllMocks();
     });
 
-    it("deve criar alerta com associação entre parâmetro e medição", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 5, idTypeParam: 2 });
-        measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
-        measurementRepositoryMock.save.mockResolvedValueOnce({ id: 15, value: 16 });
-        alertRepositoryMock.create.mockReturnValueOnce({ id: 0 });
-        alertRepositoryMock.save.mockResolvedValueOnce({ id: 10, triggeredValue: 16 });
-
-        const result = await service.createAlert({
-            parameterId: 5,
-            measuredValue: 16,
-            occurredAt: "2026-03-28T20:10:00.000Z",
-            description: "Umidade baixa",
-        });
-
-        expect(measurementRepositoryMock.create).toHaveBeenCalled();
-        expect(alertRepositoryMock.create).toHaveBeenCalled();
-        expect(result).toEqual({ id: 10, triggeredValue: 16 });
-    });
-
-    it("deve recusar criação de alerta para parâmetro inexistente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        parameterRepositoryMock.findOneBy.mockResolvedValueOnce(null);
-
-        await expect(
-            service.createAlert({
-                parameterId: 999,
-                measuredValue: 10,
-                occurredAt: "2026-03-28T20:10:00.000Z",
-                description: "Teste",
-            }),
-        ).rejects.toThrow("Parameter not found");
-    });
-
     it("deve listar histórico de alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
-        alertRepositoryMock.find.mockResolvedValueOnce([{ id: 1 }, { id: 2 }]);
+        alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }, { id: 2 }], 2]);
 
         const result = await service.listAlerts();
 
-        expect(alertRepositoryMock.find).toHaveBeenCalled();
-        expect(result).toHaveLength(2);
+        expect(alertRepositoryMock.findAndCount).toHaveBeenCalled();
+        expect(result.data).toHaveLength(2);
+    });
+
+    it("deve aplicar paginacao ao listar alertas", async () => {
+        const service = new AlertService();
+
+        alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }], 1]);
+
+        const result = await service.listAlerts({ page: 2, limit: 10 });
+
+        expect(alertRepositoryMock.findAndCount).toHaveBeenCalledWith(
+            expect.objectContaining({ skip: 10, take: 10 })
+        );
+        expect(result.page).toBe(2);
     });
 
     it("deve aplicar filtros ao listar histórico de alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
             andWhere: vi.fn().mockReturnThis(),
-            getMany: vi.fn().mockResolvedValueOnce([{ id: 33 }]),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[{ id: 33 }], 1]),
         };
 
         alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
@@ -129,23 +110,11 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         const result = await service.listAlerts({ status: "active", q: "temperatura" });
 
         expect(alertRepositoryMock.createQueryBuilder).toHaveBeenCalledWith("alert");
-        expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
-        expect(result).toEqual([{ id: 33 }]);
-    });
-
-    it("deve retornar null ao atualizar alerta inexistente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(null);
-
-        const result = await service.updateAlert(123, { description: "Atualizado" });
-
-        expect(result).toBeNull();
+        expect(queryBuilderMock.getManyAndCount).toHaveBeenCalledOnce();
+        expect(result.data).toEqual([{ id: 33 }]);
     });
 
     it("deve remover alerta existente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 10 });
@@ -157,14 +126,118 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         expect(result).toBe(true);
     });
 
+    it("deve buscar alerta pelo ID", async () => {
+        const service = new AlertService();
+
+        alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 10 });
+        const result = await service.findAlertById(10);
+        expect(alertRepositoryMock.findOne).toHaveBeenCalledWith({
+            where: { id: 10 },
+            relations: { idParameter: true, idMeasurement: true },
+        });
+        expect(result).toEqual({ id: 10 });
+    });
+
+    it("deve marcar alerta como lido", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.findOne.mockResolvedValueOnce({ id: 1, isRead: false });
+        alertRepositoryMock.save.mockResolvedValueOnce({ id: 1, isRead: true });
+        const result = await service.markAsRead(1);
+        expect(alertRepositoryMock.save).toHaveBeenCalledWith(
+            expect.objectContaining({ isRead: true })
+        );
+        expect(result).toBeTruthy();
+    });
+
+    it("deve retornar false ao tentar marcar alerta inexistente como lido", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.findOne.mockResolvedValueOnce(null);
+        const result = await service.markAsRead(999);
+        expect(result).toBeFalsy();
+    });
+
+    it("deve marcar todos os alertas como lidos", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.update.mockResolvedValueOnce({ affected: 5 });
+        const result = await service.markAllAsRead();
+        expect(alertRepositoryMock.update).toHaveBeenCalledWith({ isRead: false }, expect.objectContaining({ isRead: true, readAt: expect.any(Date) }));
+        expect(result).toBe(5);
+    });
+
+    it("deve retornar 0 quando update não retornar affected no markAllAsRead", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.update.mockResolvedValueOnce({});
+        const result = await service.markAllAsRead();
+        expect(result).toBe(0);
+    });
+
+    it("deve limpar alertas lidos", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.delete.mockResolvedValueOnce({ affected: 3 });
+        const result = await service.clearReadAlerts();
+        expect(alertRepositoryMock.delete).toHaveBeenCalledWith({ isRead: true });
+        expect(result).toBe(3);
+    });
+    
+    it("deve lidar com erro ao limpar alertas (retornando 0 quando não tem affected)", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.delete.mockResolvedValueOnce({});
+        const result = await service.clearReadAlerts();
+        expect(result).toBe(0);
+    });
+    
+    it("deve lidar com erro ao limpar alertas (afetadas 0)", async () => {
+        const service = new AlertService();
+        alertRepositoryMock.delete.mockResolvedValueOnce({ affected: 0 });
+        const result = await service.clearReadAlerts();
+        expect(result).toBe(0);
+    });
+
+    it("deve lançar erro quando parameterId não existe", async () => {
+        const service = new AlertService();
+
+        parameterRepositoryMock.findOneBy.mockResolvedValueOnce(null);
+
+        await expect(service.evaluateMeasurement({
+            parameterId: 99,
+            measuredValue: 10,
+            occurredAt: "2026-03-28T20:10:00.000Z",
+        })).rejects.toThrow("Parameter not found");
+    });
+    
+    it("deve lançar erro quando occurredAt for inválido", async () => {
+        const service = new AlertService();
+
+        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
+
+        await expect(service.evaluateMeasurement({
+            parameterId: 9,
+            measuredValue: 10,
+            occurredAt: "data-invalida",
+        })).rejects.toThrow("Invalid occurredAt");
+    });
+
+    it("deve retornar array vazio se falhar ao salvar a medição", async () => {
+        const service = new AlertService();
+
+        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
+        measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
+        measurementRepositoryMock.save.mockRejectedValueOnce(new Error("DB erro"));
+
+        await expect(service.evaluateMeasurement({
+            parameterId: 9,
+            measuredValue: 10,
+            occurredAt: "2026-03-28T20:10:00.000Z",
+        })).rejects.toThrow("DB erro");
+    });
+
     it("deve gerar alerta automático quando medição ultrapassar limite configurado", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 21 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 5,
             idTypeParam: 1,
             minExpected: 0,
@@ -186,19 +259,56 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
             occurredAt: "2026-03-28T20:10:00.000Z",
         });
 
-        expect(parameterLimitsRepositoryMock.findOneBy).toHaveBeenCalled();
+        expect(parameterLimitsRepositoryMock.findOne).toHaveBeenCalled();
         expect(alertRepositoryMock.create).toHaveBeenCalled();
         expect(generated).toHaveLength(1);
     });
 
+    it("deve atualizar alerta ativo existente em vez de criar um novo ao ultrapassar limite", async () => {
+        const service = new AlertService();
+
+        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
+        measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
+        measurementRepositoryMock.save.mockResolvedValueOnce({ id: 99 });
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
+            id: 5,
+            idTypeParam: 1,
+            minExpected: 0,
+            maxExpected: 35,
+        });
+        parameterTypeRepositoryMock.findOneBy.mockResolvedValueOnce({
+            id: 1,
+            json_key: "temperature_2m",
+            name: "Temperatura",
+            unit: "°C",
+        });
+
+        const existingAlert = {
+            id: 10,
+            idParameter: { id: 9 },
+            status: "active",
+        };
+        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
+        alertRepositoryMock.save.mockResolvedValueOnce({ ...existingAlert, triggeredValue: 40 });
+
+        const generated = await service.evaluateMeasurement({
+            parameterId: 9,
+            measuredValue: 40,
+            occurredAt: "2026-03-28T20:10:00.000Z",
+        });
+
+        expect(alertRepositoryMock.create).not.toHaveBeenCalled();
+        expect(alertRepositoryMock.save).toHaveBeenCalled();
+        expect(generated).toHaveLength(1);
+    });
+
     it("não deve gerar alerta automático quando medição estiver na faixa", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 21 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 5,
             idTypeParam: 1,
             minExpected: 0,
@@ -216,13 +326,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta automático de temperatura alta", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 99 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 5,
             idTypeParam: 1,
             minExpected: 0,
@@ -253,13 +362,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de temperatura baixa", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 9, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 99 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 5,
             idTypeParam: 1,
             minExpected: 5,
@@ -290,13 +398,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de chuva acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 10, idTypeParam: 2 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 50 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 6,
             idTypeParam: 2,
             minExpected: 0,
@@ -327,13 +434,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de chuva abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 10, idTypeParam: 2 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 51 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 6,
             idTypeParam: 2,
             minExpected: 10,
@@ -364,13 +470,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de vento acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 11, idTypeParam: 3 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 52 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 7,
             idTypeParam: 3,
             minExpected: 0,
@@ -401,13 +506,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de vento abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 11, idTypeParam: 3 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 53 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 7,
             idTypeParam: 3,
             minExpected: 5,
@@ -438,13 +542,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de umidade acima do máximo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 12, idTypeParam: 4 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 54 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 8,
             idTypeParam: 4,
             minExpected: 20,
@@ -475,13 +578,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto específico para alerta de umidade abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 12, idTypeParam: 4 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 55 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 8,
             idTypeParam: 4,
             minExpected: 20,
@@ -512,13 +614,12 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve gerar texto genérico (fallback) para parâmetro não mapeado", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 13, idTypeParam: 5 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 56 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 9,
             idTypeParam: 5,
             minExpected: 900,
@@ -548,32 +649,17 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         );
     });
 
-    it("deve lançar erro ao criar alerta com data inválida", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 5, idTypeParam: 2 });
-
-        await expect(
-            service.createAlert({
-                parameterId: 5,
-                measuredValue: 16,
-                occurredAt: "invalid-date",
-                description: "Teste data inválida",
-            }),
-        ).rejects.toThrow("Invalid occurredAt");
-    });
-
     it("deve aplicar filtros individuais ao listar alertas - stationId e parameterId", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
             andWhere: vi.fn().mockReturnThis(),
-            getMany: vi.fn().mockResolvedValueOnce([]),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[], 0]),
         };
 
         alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
@@ -591,15 +677,16 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtro de idTypeParam ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
             andWhere: vi.fn().mockReturnThis(),
-            getMany: vi.fn().mockResolvedValueOnce([]),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[], 0]),
         };
 
         alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
@@ -613,15 +700,16 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve aplicar filtro de user ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
             andWhere: vi.fn().mockReturnThis(),
-            getMany: vi.fn().mockResolvedValueOnce([]),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[], 0]),
         };
 
         alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
@@ -629,19 +717,20 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         await service.listAlerts({ user: "admin" });
 
         expect(queryBuilderMock.andWhere).toHaveBeenCalled();
-        expect(queryBuilderMock.getMany).toHaveBeenCalledOnce();
+        expect(queryBuilderMock.getManyAndCount).toHaveBeenCalledOnce();
     });
 
     it("deve aplicar filtros de data ao listar alertas", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
             andWhere: vi.fn().mockReturnThis(),
-            getMany: vi.fn().mockResolvedValueOnce([]),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[], 0]),
         };
 
         alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
@@ -661,55 +750,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         );
     });
 
-    it("deve atualizar alerta existente com todos os campos", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 10,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 20,
-                idParameter: { id: 1 },
-                rawValue: 30,
-                value: 30,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 30,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Original",
-            status: "active",
-            resolvedAt: null,
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 2, idTypeParam: 1 });
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            idParameter: { id: 2 },
-            triggeredValue: 45,
-            triggeredAt: new Date("2026-04-01T10:00:00.000Z"),
-            texto: "Atualizado",
-            status: "resolved",
-        });
-
-        const result = await service.updateAlert(10, {
-            parameterId: 2,
-            measuredValue: 45,
-            occurredAt: "2026-04-01T10:00:00.000Z",
-            description: "Atualizado",
-            status: "resolved",
-        });
-
-        expect(parameterRepositoryMock.findOneBy).toHaveBeenCalledWith({ id: 2 });
-        expect(measurementRepositoryMock.save).toHaveBeenCalled();
-        expect(alertRepositoryMock.save).toHaveBeenCalled();
-        expect(result).toBeTruthy();
-    });
-
     it("deve retornar false ao deletar alerta inexistente", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         alertRepositoryMock.findOne.mockResolvedValueOnce(null);
@@ -721,13 +762,13 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     });
 
     it("deve retornar array vazio quando não há limites configurados", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 60 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce(null);
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce(null);
+        parameterLimitsRepositoryMock.find.mockResolvedValueOnce([]);
 
         const generated = await service.evaluateMeasurement({
             parameterId: 7,
@@ -739,14 +780,39 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         expect(generated).toHaveLength(0);
     });
 
+    it("deve usar o fallback de find caso findOne nao retorne limites", async () => {
+        const service = new AlertService();
+
+        parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
+        measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
+        measurementRepositoryMock.save.mockResolvedValueOnce({ id: 60 });
+        
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce(null);
+        parameterLimitsRepositoryMock.find.mockResolvedValueOnce([
+            { id: 5, idTypeParam: 1, minExpected: 0, maxExpected: 35 }
+        ]);
+
+        parameterTypeRepositoryMock.findOneBy.mockResolvedValueOnce(null);
+        alertRepositoryMock.create.mockReturnValueOnce({ id: 0 });
+        alertRepositoryMock.save.mockResolvedValueOnce({ id: 30 });
+
+        const generated = await service.evaluateMeasurement({
+            parameterId: 7,
+            measuredValue: 40,
+            occurredAt: "2026-03-28T10:00:00.000Z",
+        });
+
+        expect(parameterLimitsRepositoryMock.find).toHaveBeenCalled();
+        expect(generated).toHaveLength(1);
+    });
+
     it("deve gerar alerta automático quando medição estiver abaixo do mínimo", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 7, idTypeParam: 1 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 61 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 5,
             idTypeParam: 1,
             minExpected: 10,
@@ -777,162 +843,13 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         expect(generated).toHaveLength(1);
     });
 
-    // BRANCH: updateAlert com apenas description (sem parameterId, measuredValue, occurredAt, status)
-    it("deve atualizar alerta apenas com description", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 10,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 20,
-                idParameter: { id: 1 },
-                rawValue: 30,
-                value: 30,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 30,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Original",
-            status: "active",
-            resolvedAt: null,
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            texto: "Novo texto",
-        });
-
-        const result = await service.updateAlert(10, { description: "Novo texto" });
-
-        expect(result).toBeTruthy();
-        expect(existingAlert.texto).toBe("Novo texto");
-        expect(measurementRepositoryMock.save).toHaveBeenCalled();
-        expect(alertRepositoryMock.save).toHaveBeenCalled();
-    });
-
-    // BRANCH: updateAlert com apenas status "active" (resolvedAt deve ser null)
-    it("deve atualizar alerta com status active e resolvedAt como null", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 11,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 21,
-                idParameter: { id: 1 },
-                rawValue: 40,
-                value: 40,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 40,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Alerta",
-            status: "resolved",
-            resolvedAt: new Date(),
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            status: "active",
-            resolvedAt: null,
-        });
-
-        const result = await service.updateAlert(11, { status: "active" });
-
-        expect(result).toBeTruthy();
-        expect(existingAlert.status).toBe("active");
-        expect(existingAlert.resolvedAt).toBeNull();
-    });
-
-    // BRANCH: updateAlert com apenas occurredAt
-    it("deve atualizar alerta apenas com occurredAt", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 12,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 22,
-                idParameter: { id: 1 },
-                rawValue: 30,
-                value: 30,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 30,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Teste",
-            status: "active",
-            resolvedAt: null,
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            triggeredAt: new Date("2026-05-01T12:00:00.000Z"),
-        });
-
-        const result = await service.updateAlert(12, { occurredAt: "2026-05-01T12:00:00.000Z" });
-
-        expect(result).toBeTruthy();
-        expect(existingAlert.triggeredAt).toEqual(new Date("2026-05-01T12:00:00.000Z"));
-        expect(existingAlert.idMeasurement.collectedAt).toEqual(new Date("2026-05-01T12:00:00.000Z"));
-    });
-
-    // BRANCH: updateAlert com apenas measuredValue
-    it("deve atualizar alerta apenas com measuredValue", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 13,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 23,
-                idParameter: { id: 1 },
-                rawValue: 30,
-                value: 30,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 30,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Teste",
-            status: "active",
-            resolvedAt: null,
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            triggeredValue: 55,
-        });
-
-        const result = await service.updateAlert(13, { measuredValue: 55 });
-
-        expect(result).toBeTruthy();
-        expect(existingAlert.triggeredValue).toBe(55);
-        expect(existingAlert.idMeasurement.rawValue).toBe(55);
-        expect(existingAlert.idMeasurement.value).toBe(55);
-    });
-
-    // BRANCH: evaluateMeasurement com parameterType null (fallback no buildAutomaticMessage)
     it("deve gerar alerta com texto fallback quando parameterType é null", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 14, idTypeParam: 99 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 70 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 10,
             idTypeParam: 99,
             minExpected: 0,
@@ -958,15 +875,13 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         expect(generated).toHaveLength(1);
     });
 
-    // BRANCH: evaluateMeasurement com parameterType null e abaixo do mínimo
     it("deve gerar alerta com texto fallback 'abaixo' quando parameterType é null e valor abaixo do min", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
         const service = new AlertService();
 
         parameterRepositoryMock.findOneBy.mockResolvedValueOnce({ id: 15, idTypeParam: 99 });
         measurementRepositoryMock.create.mockReturnValueOnce({ id: 0 });
         measurementRepositoryMock.save.mockResolvedValueOnce({ id: 71 });
-        parameterLimitsRepositoryMock.findOneBy.mockResolvedValueOnce({
+        parameterLimitsRepositoryMock.findOne.mockResolvedValueOnce({
             id: 11,
             idTypeParam: 99,
             minExpected: 50,
@@ -991,42 +906,4 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
         );
         expect(generated).toHaveLength(1);
     });
-
-    // BRANCH: updateAlert com status "resolved" (resolvedAt deve ser preenchido)
-    it("deve atualizar alerta com status resolved e preencher resolvedAt", async () => {
-        const { AlertService } = await import("../../src/services/alertService.js");
-        const service = new AlertService();
-
-        const existingAlert = {
-            id: 14,
-            idParameter: { id: 1 },
-            idMeasurement: {
-                id: 24,
-                idParameter: { id: 1 },
-                rawValue: 40,
-                value: 40,
-                collectedAt: new Date("2026-03-28T10:00:00.000Z"),
-            },
-            triggeredValue: 40,
-            triggeredAt: new Date("2026-03-28T10:00:00.000Z"),
-            texto: "Alerta",
-            status: "active",
-            resolvedAt: null,
-        };
-
-        alertRepositoryMock.findOne.mockResolvedValueOnce(existingAlert);
-        measurementRepositoryMock.save.mockResolvedValueOnce(existingAlert.idMeasurement);
-        alertRepositoryMock.save.mockResolvedValueOnce({
-            ...existingAlert,
-            status: "resolved",
-            resolvedAt: new Date(),
-        });
-
-        const result = await service.updateAlert(14, { status: "resolved" });
-
-        expect(result).toBeTruthy();
-        expect(existingAlert.status).toBe("resolved");
-        expect(existingAlert.resolvedAt).toBeInstanceOf(Date);
-    });
 });
-
