@@ -6,6 +6,8 @@ import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import { validatorCompiler, serializerCompiler, type ZodTypeProvider, jsonSchemaTransform, jsonSchemaTransformObject } from "fastify-type-provider-zod";
 import { initializeDatabase } from "./data-source.js";
+import { metricsMiddleware } from "./middleware/metricsMiddleware.js";
+import { initializeMetrics, setApplicationHealth } from "./utils/metrics.js";
 
 const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 
@@ -14,6 +16,7 @@ app.setSerializerCompiler(serializerCompiler);
 
 const start = async () => {
     await initializeDatabase();
+    initializeMetrics();
 
     await app.register(fastifySwagger, {
         openapi: {
@@ -48,12 +51,15 @@ const start = async () => {
         optionsSuccessStatus: 204,
         strictPreflight: false,
     });
+    app.addHook("preHandler", metricsMiddleware);
     await app.register(routes);
 
     try {
         await app.listen({ port: 3333, host: '0.0.0.0' })
+        setApplicationHealth(true);
     }
     catch (_err) {
+        setApplicationHealth(false);
         process.exit(1)
     }
 }
