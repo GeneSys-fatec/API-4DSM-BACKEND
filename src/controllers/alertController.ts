@@ -2,7 +2,13 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { alertService, alertNotificationEmitter, type AlertListFilters, type EvaluateMeasurementInput } from "../services/alertService.js";
 
 interface AlertPayload {
-    idParameter?: { id: number };
+    idParameter?: { 
+        id: number;
+        idTypeParam?: { name: string };
+        idStation?: { id: number; name: string };
+    };
+    idMeasurement?: { value: number };
+    triggeredValue?: number;
     triggeredAt?: Date;
     texto?: string;
     titulo?: string;
@@ -12,10 +18,15 @@ interface AlertPayload {
 }
 
 function mapAlertResponse(alert: AlertPayload) {
+    const parameter = alert.idParameter;
     return {
         ...alert,
-        parameterId: alert.idParameter?.id,
+        parameterId: parameter?.id,
+        parameterName: parameter?.idTypeParam?.name,
+        stationId: parameter?.idStation?.id,
+        stationName: parameter?.idStation?.name ?? alert.stationName,
         occurredAt: alert.triggeredAt,
+        recordedValue: alert.triggeredValue ?? alert.idMeasurement?.value,
         description: alert.texto ?? alert.titulo ?? "",
         isRead: alert.isRead,
     };
