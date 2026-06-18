@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { z } from "zod";
 import { alertController } from "../controllers/alertController.js";
+import { authenticate } from "../middleware/authenticate.js";
+import { requireAdmin } from "../middleware/admin.js";
 
 const alertIdSchema = z.object({
     id: z.string().describe("Alert id"),
@@ -33,6 +35,7 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             summary: "Listagem de alertas climáticos",
             querystring: alertListQuerySchema,
         },
+        preHandler: [authenticate, requireAdmin],
         handler: alertController.list,
     });
 
@@ -41,6 +44,7 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             tags: ["alertas"],
             summary: "Marca todos os alertas pendentes como lidos",
         },
+        preHandler: [authenticate, requireAdmin],
         handler: alertController.markAllAsRead,
     });
 
@@ -50,6 +54,7 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             summary: "Marca um alerta como lido",
             params: alertIdSchema,
         },
+        preHandler: [authenticate, requireAdmin],
         handler: alertController.markAsRead,
     });
 
@@ -58,6 +63,7 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             tags: ["alertas"],
             summary: "Limpa (exclui/soft-delete) todos os alertas já lidos",
         },
+        preHandler: [authenticate, requireAdmin],
         handler: alertController.clearRead,
     });
 
@@ -67,6 +73,7 @@ export async function alertRoutes(fastify: FastifyInstance, _options: FastifyPlu
             summary: "Remova um alerta",
             params: alertIdSchema,
         },
+        preHandler: [authenticate, requireAdmin],
         handler: alertController.delete,
     });
 }

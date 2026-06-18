@@ -130,45 +130,12 @@ export class AlertService {
         const limit = filters.limit || 1000;
         const skip = (page - 1) * limit;
 
-        const hasFilters = Boolean(
-            filters.stationId ||
-            filters.parameterId ||
-            filters.idTypeParam ||
-            filters.status ||
-            userSearchTerm ||
-            searchTerm ||
-            filters.from ||
-            filters.to ||
-            filters.isRead !== undefined
-        );
-
-        if (!hasFilters) {
-            const [data, total] = await this.alertRepository.findAndCount({
-                relations: {
-                    idParameter: true,
-                    idMeasurement: true,
-                },
-                order: {
-                    triggeredAt: "DESC",
-                },
-                skip,
-                take: limit
-            });
-            return {
-                data,
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            };
-        }
-
         const queryBuilder = this.alertRepository
             .createQueryBuilder("alert")
             .leftJoinAndSelect("alert.idParameter", "parameter")
             .leftJoinAndSelect("alert.idMeasurement", "measurement")
-            .leftJoin(StationEntity, "station", "station.id = parameter.idStation")
-            .leftJoin(parameterTypeEntity, "parameterType", "parameterType.id = parameter.idTypeParam")
+            .leftJoinAndMapOne("parameter.idStation", StationEntity, "station", "station.id = parameter.idStation")
+            .leftJoinAndMapOne("parameter.idTypeParam", parameterTypeEntity, "parameterType", "parameterType.id = parameter.idTypeParam")
             .orderBy("alert.triggeredAt", "DESC")
             .skip(skip)
             .take(limit);

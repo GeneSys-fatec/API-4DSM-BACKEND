@@ -71,24 +71,43 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
     it("deve listar histórico de alertas", async () => {
         const service = new AlertService();
 
-        alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }, { id: 2 }], 2]);
+        const queryBuilderMock = {
+            leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
+            leftJoin: vi.fn().mockReturnThis(),
+            orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[{ id: 1 }, { id: 2 }], 2]),
+        };
+        alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
 
         const result = await service.listAlerts();
 
-        expect(alertRepositoryMock.findAndCount).toHaveBeenCalled();
+        expect(alertRepositoryMock.createQueryBuilder).toHaveBeenCalled();
         expect(result.data).toHaveLength(2);
     });
 
     it("deve aplicar paginacao ao listar alertas", async () => {
         const service = new AlertService();
 
-        alertRepositoryMock.findAndCount.mockResolvedValueOnce([[{ id: 1 }], 1]);
+        const queryBuilderMock = {
+            leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
+            leftJoin: vi.fn().mockReturnThis(),
+            orderBy: vi.fn().mockReturnThis(),
+            skip: vi.fn().mockReturnThis(),
+            take: vi.fn().mockReturnThis(),
+            andWhere: vi.fn().mockReturnThis(),
+            getManyAndCount: vi.fn().mockResolvedValueOnce([[{ id: 1 }], 1]),
+        };
+        alertRepositoryMock.createQueryBuilder.mockReturnValueOnce(queryBuilderMock);
 
         const result = await service.listAlerts({ page: 2, limit: 10 });
 
-        expect(alertRepositoryMock.findAndCount).toHaveBeenCalledWith(
-            expect.objectContaining({ skip: 10, take: 10 })
-        );
+        expect(queryBuilderMock.skip).toHaveBeenCalledWith(10);
+        expect(queryBuilderMock.take).toHaveBeenCalledWith(10);
         expect(result.page).toBe(2);
     });
 
@@ -97,6 +116,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             skip: vi.fn().mockReturnThis(),
@@ -654,6 +674,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             skip: vi.fn().mockReturnThis(),
@@ -681,6 +702,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             skip: vi.fn().mockReturnThis(),
@@ -704,6 +726,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             skip: vi.fn().mockReturnThis(),
@@ -725,6 +748,7 @@ describe("AlertService - Suporte a Alertas Climáticos", () => {
 
         const queryBuilderMock = {
             leftJoinAndSelect: vi.fn().mockReturnThis(),
+            leftJoinAndMapOne: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
             skip: vi.fn().mockReturnThis(),
