@@ -16,6 +16,7 @@ const administratorUpdateSchema = z.object({
     newName: z.string().optional(),
     newEmail: z.string().email().optional(),
     newPassword: z.string().min(6).optional(),
+    currentPassword: z.string().optional(),
 })
 
 const administratorListQuerySchema = z.object({
@@ -35,6 +36,14 @@ export async function administratorRoutes(fastify: FastifyInstance, _options: Fa
             querystring: administratorListQuerySchema,
         },
         handler: administratorController.list.bind(administratorController),
+    })
+
+    fastify.get('/me', {
+        schema: {
+            tags: ['administradores'],
+            summary: 'Busca o administrador autenticado',
+        },
+        handler: administratorController.getMe.bind(administratorController),
     })
 
     fastify.get('/:id', {

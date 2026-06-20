@@ -14,6 +14,12 @@ vi.mock("../../src/services/administratorService.js", () => ({
     },
 }));
 
+vi.mock("bcrypt", () => ({
+    default: {
+        compare: vi.fn(),
+    },
+}));
+
 const replyMock = {
     send: vi.fn().mockReturnThis(),
     status: vi.fn().mockReturnThis(),
@@ -123,7 +129,8 @@ describe("AdministratorController", () => {
 
         const requestMock = {
             params: { id: 1 },
-            body: { newName: "Nome Atualizado", newEmail: "novo@email.com", newPassword: "novaSenha" },
+            user: { id: 1 },
+            body: { newName: "Nome Atualizado", newEmail: "novo@email.com" },
         } as any;
         const respostaAtualizar = { message: "Administrador atualizado com sucesso!" };
         serviceMock.update.mockResolvedValueOnce(respostaAtualizar);
@@ -132,7 +139,7 @@ describe("AdministratorController", () => {
         await controller.update(requestMock, replyMock as any);
 
         // Assert
-        expect(serviceMock.update).toHaveBeenCalledWith({ id: 1, newName: "Nome Atualizado", newEmail: "novo@email.com", newPassword: "novaSenha" });
+        expect(serviceMock.update).toHaveBeenCalledWith({ id: 1, newName: "Nome Atualizado", newEmail: "novo@email.com" });
         expect(replyMock.send).toHaveBeenCalledWith(respostaAtualizar);
     });
 
@@ -142,6 +149,7 @@ describe("AdministratorController", () => {
 
         const requestMock = {
             params: { id: 999 },
+            user: { id: 999 },
             body: { newName: "Nome", newEmail: "", newPassword: "" },
         } as any;
         serviceMock.update.mockRejectedValueOnce(new Error("Administrador não encontrado para atualização."));
@@ -229,6 +237,7 @@ describe("AdministratorController", () => {
 
         const requestMock = {
             params: { id: 1 },
+            user: { id: 1 },
             body: { newName: "Novo" },
         } as any;
         serviceMock.update.mockRejectedValueOnce({ code: 500 });
@@ -305,5 +314,115 @@ describe("AdministratorController", () => {
         await controller.list(requestMock, replyMock as any);
 
         expect(serviceMock.list).toHaveBeenCalledWith({ q: "busca" });
+    });
+
+    // GET ME
+    it("deve retornar o administrador autenticado no getMe", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            user: { id: 10 },
+        } as any;
+        const adminMock = { id: 10, name: "Admin Autenticado", email: "me@teste.com" };
+        serviceMock.listById.mockResolvedValueOnce(adminMock);
+
+        await controller.getMe(requestMock, replyMock as any);
+
+        expect(serviceMock.listById).toHaveBeenCalledWith(10);
+        expect(replyMock.send).toHaveBeenCalledWith(adminMock);
+    });
+
+    it("deve retornar status 401 no getMe se o usuario nao estiver no request", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {} as any;
+
+        await controller.getMe(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(401);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Não autenticado." });
+    });
+
+    // PROFILE UPDATE PASSWORD VALIDATION
+    it("deve rejeitar atualizacao de senha propria se a senha atual nao for informada", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 5 },
+            user: { id: 5 },
+            body: { newPassword: "newpassword" },
+        } as any;
+
+        await controller.update(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "A senha atual é obrigatória para alteração de senha." });
+    });
+
+    it("deve rejeitar atualizacao de senha propria se a senha atual estiver incorreta", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+        const bcrypt = await import("bcrypt");
+
+        const requestMock = {
+            params: { id: 5 },
+            user: { id: 5 },
+            body: { newPassword: "newpassword", currentPassword: "wrongpassword" },
+        } as any;
+
+        const adminMock = { id: 5, password: "hashed_wrong_password" };
+        serviceMock.listById.mockResolvedValueOnce(adminMock);
+        vi.mocked(bcrypt.default.compare).mockResolvedValueOnce(false);
+
+        await controller.update(requestMock, replyMock as any);
+
+        expect(serviceMock.listById).toHaveBeenCalledWith(5);
+        expect(bcrypt.default.compare).toHaveBeenCalledWith("wrongpassword", "hashed_wrong_password");
+        expect(replyMock.status).toHaveBeenCalledWith(400);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Senha atual incorreta." });
+    });
+
+    it("deve permitir atualizacao de senha propria se a senha atual estiver correta", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+        const bcrypt = await import("bcrypt");
+
+        const requestMock = {
+            params: { id: 5 },
+            user: { id: 5 },
+            body: { newPassword: "newpassword", currentPassword: "correctpassword" },
+        } as any;
+
+        const adminMock = { id: 5, password: "hashed_correct_password" };
+        serviceMock.listById.mockResolvedValueOnce(adminMock);
+        vi.mocked(bcrypt.default.compare).mockResolvedValueOnce(true);
+        serviceMock.update.mockResolvedValueOnce({ message: "Atualizado" });
+
+        await controller.update(requestMock, replyMock as any);
+
+        expect(serviceMock.listById).toHaveBeenCalledWith(5);
+        expect(bcrypt.default.compare).toHaveBeenCalledWith("correctpassword", "hashed_correct_password");
+        expect(serviceMock.update).toHaveBeenCalledWith({ id: 5, newPassword: "newpassword" });
+        expect(replyMock.send).toHaveBeenCalledWith({ message: "Atualizado" });
+    });
+
+    // FORBIDDEN PROFILE UPDATE (EDITING ANOTHER ADMIN)
+    it("deve retornar status 403 se o usuario tentar atualizar outro administrador", async () => {
+        const { AdministratorController } = await import("../../src/controllers/administratorController.js");
+        const controller = new AdministratorController();
+
+        const requestMock = {
+            params: { id: 2 },
+            user: { id: 1 },
+            body: { newName: "Nome Alterado" },
+        } as any;
+
+        await controller.update(requestMock, replyMock as any);
+
+        expect(replyMock.status).toHaveBeenCalledWith(403);
+        expect(replyMock.send).toHaveBeenCalledWith({ error: "Você só pode alterar o seu próprio perfil." });
     });
 });
